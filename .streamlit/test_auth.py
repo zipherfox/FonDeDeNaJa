@@ -3,12 +3,11 @@ from streamlit_oauth import OAuth2Component
 from streamlit_cookies_controller import CookieController
 
 # Load secrets from secret.toml
-secrets = st.secrets["auth"]
-client_id = secrets["client_id"]
-client_secret = secrets["client_secret"]
-redirect_uri = secrets["redirect_uri"]
-server_metadata_url = secrets["server_metadata_url"]
-cookie_secret = secrets["cookie_secret"]
+client_id = st.secrets.client_id
+client_secret = st.secrets.client_secret
+redirect_uri = st.secrets.redirect_uri
+server_metadata_url = st.secrets.server_metadata_url
+cookie_secret = st.secrets.cookie_secret
 
 oauth2 = OAuth2Component(
     client_id=client_id,
