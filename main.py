@@ -10,6 +10,7 @@ def main():
         case "Upload ZIP":up.file_IO()
         case "Select Google Drive Folder":up.drive_folder()
     if st.button("Click Me"):st.write("Button clicked!")
+    if st.button("Check secrets.toml"):st.write(st.secrets.test.message)
     else:st.write("Button not clicked yet.")
 if __name__ == "__main__":
     main()

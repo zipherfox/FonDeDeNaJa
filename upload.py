@@ -6,8 +6,6 @@ def file_IO():
         st.write("File uploaded successfully!")
     elif uploaded_file is None:
         st.write("Please upload a file.")
-    else:
-        st.warning("Something went wrong with the upload.")
 def drive_folder():
     if st.button("Select Folder from Google Drive"):
         st.write("Folder selected successfully!")
