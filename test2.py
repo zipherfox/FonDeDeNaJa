@@ -8,18 +8,16 @@ import numpy as np
 import argparse
 import imutils
 import cv2
-import pandas as pd
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True,help="path to the input image")
+ap.add_argument("-i", "--image", required=True,
+	help="path to the input image")
 args = vars(ap.parse_args())
 
 # define the answer key which maps the question number
-# to the correct answer	
-anskey = pd.read_csv('answer_key.csv')
-ANSWER_KEY = anskey['answer'].tolist()
-
+# to the correct answer
+ANSWER_KEY = {0: 1, 1: 4, 2: 0, 3: 3, 4: 1}
 
 # load the image, convert it to grayscale, blur it
 # slightly, then find edges
@@ -127,10 +125,9 @@ for (q, i) in enumerate(np.arange(0, len(questionCnts), 5)):
 	if k == bubbled[1]:
 		color = (0, 255, 0)
 		correct += 1
-		# draw the outline of the correct answer on the test
-		start_point = cnts[0]
-		end_point = cnts[3]
-		cv2.line(paper, start_point, end_point, color, 10)
+
+	# draw the outline of the correct answer on the test
+	cv2.drawContours(paper, [cnts[k]], -1, color, 3)
 
 # grab the test taker
 score = (correct / 5.0) * 100
