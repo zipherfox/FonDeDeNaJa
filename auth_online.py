@@ -4,7 +4,6 @@ import pandas as pd
 # Load secrets from secret.toml
 # cookie_manager = CookieController()
 # cookie_secret = st.secrets["cookie_secret"]
-
 if st.user.is_logged_in:
     user_email = st.user.email if hasattr(st.user, 'email') else 'unknown'
     st.write("You are logged in as:", user_email)
@@ -17,4 +16,4 @@ if st.user.is_logged_in:
         st.write("You are logged in as :", user_email)
 else:
     st.write("You are not logged in. Please log in to continue.")
-    if st.button("Login"):st.login()
+    st.button("Login", on_click=st.login())
