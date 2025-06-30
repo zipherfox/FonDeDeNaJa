@@ -16,4 +16,4 @@ if st.user.is_logged_in:
         st.write("You are logged in as :", user_email)
 else:
     st.write("You are not logged in. Please log in to continue.")
-    st.button("Login", on_click=st.login())
+    if st.button("Login"):st.login()
