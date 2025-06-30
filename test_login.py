@@ -1,2 +1,2 @@
 import streamlit as st
-st.login()
+if st.button("Login"):st.login()
