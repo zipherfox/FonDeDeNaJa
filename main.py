@@ -1,10 +1,11 @@
+import importlib
 import streamlit as st
-import lib
+lib = importlib.import_module("src.lib")
 import datetime
 
 class App:
     def __init__(self):
-        self.dev_key = "L4D2"
+        pass
     def show(self):
         st.title("Welcome to the Application")
         # Display current date and time
@@ -36,12 +37,10 @@ class App:
             height=60,
         )
 
-    def run(self):
-        devkey = st.query_params["devkey"]
-        if devkey == self.dev_key:
-            self.show()
-            lib.sidebar(DEVMODE=True)
-        else:st.error("Invalid Developer Key")
+    def run(self, access_mode="Normal"):
+        st.write(lib.whoami(email="66991023@kmitl.ac.th"))
+        self.show()
+
 
 if __name__ == "__main__":
     app = App()

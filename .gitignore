@@ -1,3 +1,9 @@
-/.streamlit/secrets.toml
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Config and data
+config/config.toml
+data/*.csv
+
 __pycache__/
 .venv/
