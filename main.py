@@ -2,6 +2,14 @@ import importlib
 import streamlit as st
 lib = importlib.import_module("src.lib")
 import datetime
+import os
+import toml
+
+base_dir = os.path.dirname(os.path.dirname(__file__))  # Move up from /src to root
+config_path = os.path.join(base_dir, 'resources', 'config.toml')
+
+with open(config_path, 'r') as f:
+    config = toml.load(f)
 
 class App:
     def __init__(self):
