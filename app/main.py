@@ -50,6 +50,7 @@ class App:
             if user.access == "Unknown":st.write(f":blue-background[**Access Level**] :red[{user.access}]")
             elif user.access == "Superadmin":st.write(f":blue-background[**Access Level**] :rainbow[{user.access}]")
             else:st.write(f":blue-background[**Access Level**] {user.access}")
+            st.write(f":blue-background[**Message**] {user.message}")
             if st.button("Logout"):
                 st.logout()
                 st.success("You have been logged out.")
