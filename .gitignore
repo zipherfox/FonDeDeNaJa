@@ -5,5 +5,8 @@
 config/config.toml
 data/*.csv
 
+#Dockerfile
+app/Dockerfile
+
 __pycache__/
 .venv/
