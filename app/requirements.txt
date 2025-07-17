@@ -1,3 +1,5 @@
 streamlit
 toml
 pandas
+Authlib
+opencv-python

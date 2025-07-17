@@ -1,12 +1,15 @@
 # Streamlit secrets
 .streamlit/secrets.toml
+app/.streamlit/secrets.toml
 
 # Config and data
 config/config.toml
 data/*.csv
 
-#Dockerfile
+#Docker associated files
+docker-compose.yml
 app/Dockerfile
+web.tar
 
 __pycache__/
 .venv/
