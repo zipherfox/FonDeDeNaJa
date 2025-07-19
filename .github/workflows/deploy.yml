@@ -3,7 +3,7 @@ name: Deploy Streamlit App
 on:
   push:
     branches:
-      - main  # Trigger on push to main
+      - main  # Trigger only on push to main
 
 jobs:
   deploy:
@@ -15,18 +15,18 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy on Server
+      - name: Run remote deployment command
         run: |
-          ssh -p ${{ secrets.SSH_PORT || '22' }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            set -e
-            cd /path/to/your/project  # <-- Change this to your app path
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "deploy"
 
-            echo "Pulling latest code..."
-            git pull origin main
+      - name: (Optional) View remote Docker build
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "docker build -t streamlit_app /home/gha_deploy/FonDeDeNaJa"
 
-            echo "Restarting Streamlit app..."
-            docker compose down
-            docker compose up -d --build
-          EOF
+      - name: (Optional) Restart Docker Compose
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "docker compose -f /home/gha_deploy/FonDeDeNaJa/docker-compose.yml up -d --build"

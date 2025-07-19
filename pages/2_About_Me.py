@@ -1,9 +1,20 @@
 import streamlit as st
-
-st.title("About Me")
-if st.user.is_logged_in:
-    st.image(st.user.picture, width=120)
-    st.markdown(f"**Name:** {st.user.name}")
-    st.markdown(f"**Email:** {st.user.email}")
+import src.lib as lib
+st.title("User Information")
+if not st.user.is_logged_in:
+    if st.button("Login", type="primary"):st.login()
 else:
-    st.write("Please log in to view your profile.")
+    user = lib.whoami(st.user.email)
+    if st.user.is_logged_in:st.image(st.user["picture"])
+    if user.name == "Zipherfox":st.write(f":blue-background[**Name**] :blue[{user.name}] (:grey[{st.user['name']}])") 
+    else:st.write(f":blue-background[**Name**] {user.name}")
+    st.write(f":blue-background[**Email**] {user.email}")
+    st.write(f":blue-background[**Role**] {user.role}")
+    if user.access == "Unknown":st.write(f":blue-background[**Access Level**] :red[{user.access}]")
+    elif user.access == "Superadmin":st.write(f":blue-background[**Access Level**] :rainbow[{user.access}]")
+    else:st.write(f":blue-background[**Access Level**] {user.access}")
+    st.write(f":blue-background[**Message**] {user.message}")
+    if st.button("Logout"):
+        st.logout()
+        st.success("You have been logged out.")
+        st.experimental_rerun()
