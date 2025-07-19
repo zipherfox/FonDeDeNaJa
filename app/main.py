@@ -36,14 +36,13 @@ class App:
         )
 
     def run(self, access_mode_level='Student'):
-        if access_mode_level == 'Developer':
-            lib.sidebar.DEVMODE = True
-        else:
-            lib.sidebar.DEVMODE = False
+        if access_mode_level == 'Developer':lib.sidebar.DEVMODE = True
+        else:lib.sidebar.DEVMODE = False
         lib.sidebar.DEVMODE = st.session_state.get('dev_mode', False)
         self.show()
-
-
+    def show(self):
+        st.title("Welcome to FonDeDeNaJa")
+        st.write("This program is designed to validate the scores of bubble sheets. It is also capable of determining the access level of users based on their registered email addresses.")
 if __name__ == "__main__":
     app = App()
     app.run()

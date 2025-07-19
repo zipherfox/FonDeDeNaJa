@@ -39,6 +39,7 @@ class whoami:
         # Determine name
         if pd.isna(df.loc[email, "name"]) or not df.loc[email, "name"]:
             self.name = st.user["name"]
+            self.registered = False
         else:
             self.name = df.loc[email, "name"]
 

@@ -1,5 +1,5 @@
 import streamlit as st
-import src.lib as lib
+import app.src.lib as lib
 st.title("User Information")
 if not st.user.is_logged_in:
     if st.button("Login", type="primary"):st.login()
@@ -14,6 +14,10 @@ else:
     elif user.access == "Superadmin":st.write(f":blue-background[**Access Level**] :rainbow[{user.access}]")
     else:st.write(f":blue-background[**Access Level**] {user.access}")
     st.write(f":blue-background[**Message**] {user.message}")
+    if user.registered == True:
+        st.write(":blue-background[**Registered**] :green[Yes]")
+    else:
+        st.write(":blue-background[**Registered**] :red[No]")
     if st.button("Logout"):
         st.logout()
         st.success("You have been logged out.")
