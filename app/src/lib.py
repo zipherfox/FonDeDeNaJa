@@ -3,7 +3,7 @@ import pandas as pd
 import toml
 import os
 
-config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.toml")
+config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".streamlit", "config.toml")
 config = toml.load(config_path)
 
 
