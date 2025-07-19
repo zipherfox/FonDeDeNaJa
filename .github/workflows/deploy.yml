@@ -29,6 +29,7 @@ jobs:
             cd /home/gha_deploy/FonDeDeNaJa  # Adjust if your repo lives elsewhere
 
             echo "Pulling latest code..."
+            git config --global --add safe.directory /home/gha_deploy/FonDeDeNaJa
             git pull origin main
 
             echo "Rebuilding and restarting containers..."
