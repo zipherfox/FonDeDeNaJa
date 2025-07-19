@@ -1,64 +1,39 @@
-name: Build and Deploy Streamlit App
+name: Remote Deploy via SSH
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy to Remote Server
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🛠️ Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🔐 Set up SSH
+      - name: Start SSH Agent and Add Key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
-      - name: 🧪 Validate secrets and config
+      - name: Add SSH Host to known_hosts
         run: |
-          if [ ! -f ./secrets.toml ]; then
-            echo "❌ Missing secrets.toml"
-            exit 1
-          fi
-          if [ ! -f ./config.toml ]; then
-            echo "❌ Missing config.toml"
-            exit 1
-          fi
-          echo "✅ Config files found"
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🐳 Build Docker image
-        run: |
-          docker build -t my-streamlit-app .
-
-      - name: 📦 Save Docker image as tarball
-        run: |
-          docker save my-streamlit-app | gzip > app-image.tar.gz
-
-      - name: 🚀 Copy image and configs to server
-        run: |
-          scp -P ${{ secrets.SSH_PORT }} app-image.tar.gz \
-            config.toml secrets.toml \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
-
-      - name: 🖥️ Load image and start app remotely
+      - name: Trigger Remote Deploy Script
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             set -e
-            echo "📦 Loading Docker image..."
-            gunzip -c /tmp/app-image.tar.gz | docker load
+            echo "Starting deployment on server at $(date)"
 
-            echo "🔄 Restarting container..."
-            docker stop streamlit-app || true
-            docker rm streamlit-app || true
-            docker run -d --name streamlit-app \
-              -v /tmp/config.toml:/app/config.toml \
-              -v /tmp/secrets.toml:/app/secrets.toml \
-              -p 8501:8501 my-streamlit-app
+            cd /home/gha_deploy/FonDeDeNaJa  # Adjust if your repo lives elsewhere
+
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Rebuilding and restarting containers..."
+            docker compose pull
+            docker compose up -d --build
+
+            echo "✅ Deployment done at $(date)"
           EOF
