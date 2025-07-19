@@ -20,4 +20,4 @@ ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_SERVER_PORT=8501
 
 # Start Streamlit
-CMD ["cd", "/app", "&&", "streamlit", "run", "main.py"]
+CMD ["streamlit", "run", "app/main.py"]
