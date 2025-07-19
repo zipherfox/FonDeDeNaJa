@@ -1,32 +1,64 @@
-name: Deploy Streamlit App
+name: Build and Deploy Streamlit App
 
 on:
   push:
-    branches:
-      - main  # Trigger only on push to main
+    branches: [main]
 
 jobs:
-  deploy:
+  build-and-deploy:
+    name: Build and Deploy to Remote Server
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Run remote deployment command
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "deploy"
+      - name: 🛠️ Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: (Optional) View remote Docker build
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "docker build -t streamlit_app /home/gha_deploy/FonDeDeNaJa"
+      - name: 🔐 Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
 
-      - name: (Optional) Restart Docker Compose
+      - name: 🧪 Validate secrets and config
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "docker compose -f /home/gha_deploy/FonDeDeNaJa/docker-compose.yml up -d --build"
+          if [ ! -f ./secrets.toml ]; then
+            echo "❌ Missing secrets.toml"
+            exit 1
+          fi
+          if [ ! -f ./config.toml ]; then
+            echo "❌ Missing config.toml"
+            exit 1
+          fi
+          echo "✅ Config files found"
+
+      - name: 🐳 Build Docker image
+        run: |
+          docker build -t my-streamlit-app .
+
+      - name: 📦 Save Docker image as tarball
+        run: |
+          docker save my-streamlit-app | gzip > app-image.tar.gz
+
+      - name: 🚀 Copy image and configs to server
+        run: |
+          scp -P ${{ secrets.SSH_PORT }} app-image.tar.gz \
+            config.toml secrets.toml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/
+
+      - name: 🖥️ Load image and start app remotely
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            echo "📦 Loading Docker image..."
+            gunzip -c /tmp/app-image.tar.gz | docker load
+
+            echo "🔄 Restarting container..."
+            docker stop streamlit-app || true
+            docker rm streamlit-app || true
+            docker run -d --name streamlit-app \
+              -v /tmp/config.toml:/app/config.toml \
+              -v /tmp/secrets.toml:/app/secrets.toml \
+              -p 8501:8501 my-streamlit-app
+          EOF
