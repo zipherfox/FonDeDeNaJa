@@ -2,7 +2,7 @@ services:
   streamlit:
     build:
       context: .
-      dockerfile: ../Dockerfile  # Go up from /app to root
+      dockerfile: Dockerfile
     container_name: streamlit-app
     ports:
       - "127.0.0.1:8501:8501"
