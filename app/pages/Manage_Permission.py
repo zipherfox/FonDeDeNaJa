@@ -1,5 +1,5 @@
 import streamlit as st
-from liberty import WARN
+from app.liberty import WARN
 import pandas as pd
 import os
 

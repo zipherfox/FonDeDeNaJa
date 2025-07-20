@@ -3,3 +3,5 @@ toml
 pandas
 Authlib
 opencv-python
+PyYAML
+dotenv
