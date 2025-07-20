@@ -18,6 +18,14 @@ gimmicks=(
   "Why are you gay? -w- Does that make you gay???"
 )
 
+# Parse script flags
+SKIP_INTERACTIVE=false
+for arg in "$@"; do
+  case $arg in
+    --skip-interactive|-s)
+      SKIP_INTERACTIVE=true; shift;;
+  esac
+done
 # Load environment variables from .env if present
 if [ -f ".env" ]; then
   # shellcheck disable=SC1091
@@ -31,26 +39,55 @@ TEMPLATES_DIR="${TEMPLATES_DIR:-templates}"
 STREAMLIT_DIR="${STREAMLIT_DIR:-.streamlit}"
 APP_DIR="${APP_DIR:-app}"
 
-# Interactive prompts
-echo -e "=== Interactive Setup ==="
-echo -e "(Leave blank to use the default shown in [brackets])"
-read -p "Data directory [${DATA_DIR}]: " input && [ -n "$input" ] && DATA_DIR="$input"
-read -p "Image directory [${IMG_DIR}]: " input && [ -n "$input" ] && IMG_DIR="$input"
-read -p "Templates directory [${TEMPLATES_DIR}]: " input && [ -n "$input" ] && TEMPLATES_DIR="$input"
-read -p "Streamlit directory [${STREAMLIT_DIR}]: " input && [ -n "$input" ] && STREAMLIT_DIR="$input"
-read -p "App directory [${APP_DIR}]: " input && [ -n "$input" ] && APP_DIR="$input"
+# Auto-detect defaults: if all required dirs/files exist, offer to use them
+USE_DEFAULTS=false
+required_dirs=("$APP_DIR" "$APP_DIR/pages" "$DATA_DIR" "$TEMPLATES_DIR" "$IMG_DIR" "$STREAMLIT_DIR")
+required_files=("$DATA_DIR/settings.yaml" "$TEMPLATES_DIR/settings.yaml" "$STREAMLIT_DIR/secrets.toml" "$DATA_DIR/user.csv")
+if [ "$SKIP_INTERACTIVE" = false ]; then
+  all_present=true
+  for d in "${required_dirs[@]}"; do
+    if [ ! -d "$d" ]; then all_present=false; break; fi
+  done
+  if [ "$all_present" = true ]; then
+    for f in "${required_files[@]}"; do
+      if [ ! -f "$f" ]; then all_present=false; break; fi
+    done
+  fi
+  if [ "$all_present" = true ]; then
+    read -p "All required items found at default locations. Apply these defaults? [Y/N]: " apply_ans
+    if [[ "$apply_ans" =~ ^[Yy] ]]; then
+      USE_DEFAULTS=true
+    fi
+  fi
+fi
 
-# Prompt for auto-generation with a 'mad' flag on invalid entries
-mad=false
-while true; do
-  read -p "Auto-generate missing files and directories? [Y/N]: " gen_ans
-  case "$gen_ans" in
-    [Yy]) GEN_ENABLED=true; break;;
-    [Nn]) GEN_ENABLED=false; break;;
-    "") echo -e "${YELLOW}Please enter Y or N.${NC}";;
-    *) echo -e "${RED}I ASKED Y OR N GODDAMMIT. HOW IS IT SO HARD TO UNDERSTAND SUCH A SIMPLE INSTRUCTION!${NC}"; mad=true;;
-  esac
-done
+if [ "$SKIP_INTERACTIVE" = false ] && [ "$USE_DEFAULTS" = false ]; then
+  # Interactive prompts for custom paths
+  echo -e "=== Interactive Setup ==="
+  echo -e "(Leave blank to use the default shown in [brackets])"
+  read -p "Data directory [${DATA_DIR}]: " input && [ -n "$input" ] && DATA_DIR="$input"
+  read -p "Image directory [${IMG_DIR}]: " input && [ -n "$input" ] && IMG_DIR="$input"
+  read -p "Templates directory [${TEMPLATES_DIR}]: " input && [ -n "$input" ] && TEMPLATES_DIR="$input"
+  read -p "Streamlit directory [${STREAMLIT_DIR}]: " input && [ -n "$input" ] && STREAMLIT_DIR="$input"
+  read -p "App directory [${APP_DIR}]: " input && [ -n "$input" ] && APP_DIR="$input"
+else
+  # Non-interactive: skip prompts
+  GEN_ENABLED=false
+fi
+
+if [ "$SKIP_INTERACTIVE" = false ]; then
+  # Prompt for auto-generation with a 'mad' flag on invalid entries
+  mad=false
+  while true; do
+    read -p "Auto-generate missing files and directories? [Y/N]: " gen_ans
+    case "$gen_ans" in
+      [Yy]) GEN_ENABLED=true; break;;
+      [Nn]) GEN_ENABLED=false; break;;
+      "") echo -e "${YELLOW}Please enter Y or N.${NC}";;
+      *) echo -e "${RED}I ASKED Y OR N GODDAMMIT. HOW IS IT SO HARD TO UNDERSTAND SUCH A SIMPLE INSTRUCTION!${NC}"; mad=true;;
+    esac
+  done
+fi
 
 # Required items
 required_dirs=("$APP_DIR" "$APP_DIR/pages" "$DATA_DIR" "$TEMPLATES_DIR" "$IMG_DIR" "$STREAMLIT_DIR")

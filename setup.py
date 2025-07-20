@@ -84,31 +84,44 @@ def main():
     parser.add_argument('--app-dir', default=os.getenv('APP_DIR', 'app'),
                         help='App directory')
     parser.add_argument('--no-gen', action='store_true', help='Do not auto-generate missing files or directories')
+    parser.add_argument('--skip-interactive', action='store_true', help='Skip interactive prompts and use defaults without generating')
+
     args = parser.parse_args()
     # Interactive prompts for paths (press Enter to use the default)
-    print("=== Interactive Setup ===\n(Leave blank and press Enter to use the default shown in [brackets])")
-    val = input(f"Data directory [{args.data_dir}]: ").strip()
-    data_dir = Path(val or args.data_dir).expanduser().resolve()
-    val = input(f"Image directory [{args.img_dir}]: ").strip()
-    img_dir = Path(val or args.img_dir).expanduser().resolve()
-    val = input(f"Templates directory [{args.templates_dir}]: ").strip()
-    templates_dir = Path(val or args.templates_dir).expanduser().resolve()
-    val = input(f"Streamlit directory [{args.streamlit_dir}]: ").strip()
-    streamlit_dir = Path(val or args.streamlit_dir).expanduser().resolve()
-    val = input(f"App directory [{args.app_dir}]: ").strip()
-    app_dir = Path(val or args.app_dir).expanduser().resolve()
-    # Prompt for auto-generation of missing items, require explicit Y or N
-    count = 0
-    while True:
-        gen_ans = input("Auto-generate missing files and directories? [Y/N]: ").strip().lower()
-        if gen_ans in ('y', 'n'):
-            break
-        if gen_ans == '':
-            print(f"{Fore.YELLOW}Please enter 'Y' or 'N'.{Style.RESET_ALL}")
-        else:
-            print(f"{Fore.RED}I ASKED Y OR N GODDAMMIT. HOW IS IT SO HARD TO UNDERSTAND SUCH A SIMPLE INSTRUCTIONS!{Style.RESET_ALL}")
-            mad = True
-    gen_enabled = (gen_ans == 'y')
+    # Resolve default paths
+    data_dir = Path(args.data_dir).expanduser().resolve()
+    img_dir = Path(args.img_dir).expanduser().resolve()
+    templates_dir = Path(args.templates_dir).expanduser().resolve()
+    streamlit_dir = Path(args.streamlit_dir).expanduser().resolve()
+    app_dir = Path(args.app_dir).expanduser().resolve()
+    mad = False
+    if args.skip_interactive:
+        # Non-interactive: no generation
+        gen_enabled = False
+    else:
+        # Interactive prompts for paths
+        print("=== Interactive Setup ===\n(Leave blank to use the default shown in [brackets])")
+        val = input(f"Data directory [{args.data_dir}]: ").strip()
+        data_dir = Path(val or args.data_dir).expanduser().resolve()
+        val = input(f"Image directory [{args.img_dir}]: ").strip()
+        img_dir = Path(val or args.img_dir).expanduser().resolve()
+        val = input(f"Templates directory [{args.templates_dir}]: ").strip()
+        templates_dir = Path(val or args.templates_dir).expanduser().resolve()
+        val = input(f"Streamlit directory [{args.streamlit_dir}]: ").strip()
+        streamlit_dir = Path(val or args.streamlit_dir).expanduser().resolve()
+        val = input(f"App directory [{args.app_dir}]: ").strip()
+        app_dir = Path(val or args.app_dir).expanduser().resolve()
+        # Prompt for auto-generation
+        while True:
+            gen_ans = input("Auto-generate missing files and directories? [Y/N]: ").strip().lower()
+            if gen_ans in ('y', 'n'):
+                break
+            if gen_ans == '':
+                print(f"{Fore.YELLOW}Please enter 'Y' or 'N'.{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.RED}I ASKED Y OR N GODDAMMIT. HOW IS IT SO HARD TO UNDERSTAND SUCH A SIMPLE INSTRUCTION!{Style.RESET_ALL}")
+                mad = True
+        gen_enabled = (gen_ans == 'y')
 
     required_dirs = [
         app_dir,
