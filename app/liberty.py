@@ -197,7 +197,7 @@ class whoami:
             nav_pages.append(("Home", "main.py"))
 
         if nav_pages:
-            selected_page = st.sidebar.selectbox("Navigate", [t for t, _ in nav_pages])
+            selected_page = st.sidebar.selectbox("Navigate", [t for t, _ in nav_pages], key="sidebar_nav")
             # Navigation logic should be handled externally using selected_page
         else:
             st.sidebar.write("No pages available for your access level.")
