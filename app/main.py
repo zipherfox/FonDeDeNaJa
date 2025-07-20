@@ -1,6 +1,6 @@
 import importlib
 import streamlit as st
-import src.lib as lib
+import app.lib as lib
 import datetime
 
 class App:

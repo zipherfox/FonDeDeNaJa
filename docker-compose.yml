@@ -1,11 +1,15 @@
 services:
   streamlit:
     build:
-      context: .
+      context: ./app
       dockerfile: Dockerfile
     container_name: streamlit-app
     ports:
       - "127.0.0.1:8501:8501"
     volumes:
+      - ${CONFIG_DIR}:/app/config:rw
+      - ${IMAGE_DIR}:/app/temp_images:rw
       - ./app/.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
+    env_file:
+      - .env
     restart: always

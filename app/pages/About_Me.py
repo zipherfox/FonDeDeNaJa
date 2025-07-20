@@ -1,10 +1,10 @@
 import streamlit as st
-import app.src.lib as lib
+from liberty import *
 st.title("User Information")
 if not st.user.is_logged_in:
     if st.button("Login", type="primary"):st.login()
 else:
-    user = lib.whoami(st.user.email)
+    user = whoami(st.user.email)
     if st.user.is_logged_in:st.image(st.user["picture"])
     if user.name == "Zipherfox":st.write(f":blue-background[**Name**] :blue[{user.name}] (:grey[{st.user['name']}])") 
     else:st.write(f":blue-background[**Name**] {user.name}")
