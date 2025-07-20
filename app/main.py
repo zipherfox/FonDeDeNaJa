@@ -1,7 +1,10 @@
 import importlib
+import env_check
 import streamlit as st
-import app.lib as lib
+import liberty as lib
 import datetime
+
+env_check.check_env_requirements()
 
 class App:
     def __init__(self):
@@ -46,3 +49,4 @@ class App:
 if __name__ == "__main__":
     app = App()
     app.run()
+    lib.prevent_st_user_not_logged_in()

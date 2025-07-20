@@ -5,3 +5,4 @@ Authlib
 opencv-python
 PyYAML
 dotenv
+colorama

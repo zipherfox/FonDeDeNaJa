@@ -1,6 +1,7 @@
 import streamlit as st
-from app.liberty import *
+from liberty import mainload, whoami
 st.title("User Information")
+mainload()
 if not st.user.is_logged_in:
     if st.button("Login", type="primary"):st.login()
 else:

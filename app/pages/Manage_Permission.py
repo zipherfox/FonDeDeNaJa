@@ -1,21 +1,29 @@
 import streamlit as st
-from app.liberty import WARN
+from liberty import WARN, mainload
 import pandas as pd
 import os
-
 st.title("Manage Permissions")
-
-def editable_user_table(csv_path="resources/user.csv"):
+mainload()
+@st.fragment
+def editable_user_table(csv_path=os.getenv("USER_DATA_FILE", "data/user.csv")):
+    st.info(f"[DEBUG] Using user CSV file: {csv_path}")
     df = pd.read_csv(csv_path)
     edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="user_edit_table")
     if st.button("Save Changes", type="primary"):
         # Backup old file
         backup_path = csv_path + ".bak"
+        st.info(f"[DEBUG] Saving to: {csv_path}")
         if os.path.exists(csv_path):
             os.replace(csv_path, backup_path)
         edited_df.to_csv(csv_path, index=False)
-        st.success("User permissions updated and saved!")
-        st.rerun()
+        st.success("User permissions updated and saved! Refreshing in 5 seconds...")
+        import time
+        for i in range(5, 0, -1):
+            st.toast(f"Refreshing in {i} second{'s' if i > 1 else ''}...")
+            time.sleep(1)
+        st.rerun(scope="fragment")
+        #For Developement purpose
+        print(pd.read_csv(csv_path))
     return edited_df
 
 editable_user_table()

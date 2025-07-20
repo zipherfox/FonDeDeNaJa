@@ -6,6 +6,9 @@ import os
 import shutil
 from dotenv import load_dotenv
 from pathlib import Path
+def ALERT(msg: str):
+    st.error(msg, icon="🚨")
+    print(f"ALERT: {msg}")
 
 def WARN(msg: str):
     st.warning(msg, icon="⚠️")
@@ -39,7 +42,7 @@ def check_secrets_file():
 
     try:
         if not hasattr(st, "user") or not hasattr(st.user, "email"):
-            return WARN("User authentication information is missing. Please contact developers.")
+            return WARN("User authentication information. Are you logged in?")
     except AttributeError:
         return WARN("User authentication information is missing. Please contact developers.")
 def initialize_environment():
@@ -215,3 +218,49 @@ def register(email):
     if email not in df.index:
         WARN("Your email is not registered.")
         print(f"{email} is not found in the database. Please adjust user.csv accordingly.")
+def sidebar():
+    """
+    Render the sidebar with user information and navigation options.
+    """
+    st.sidebar.title("User Information")
+    user = whoami(st.session_state.get('email', None), st.session_state.get('devkey', None))
+    
+    if user.registered:
+        st.sidebar.write(f"**Name:** {user.name}")
+        st.sidebar.write(f"**Role:** {user.role}")
+        st.sidebar.write(f"**Access Level:** {user.access}")
+        st.sidebar.write(f"**Email:** {user.email}")
+        st.sidebar.write(f"**Message:** {user.message}")
+    else:
+        st.sidebar.warning("You are not registered. Please contact the administrator.")
+    
+    if user.DEVMODE:
+        st.sidebar.write("Developer Mode is enabled.")
+def prevent_st_user_not_logged_in():
+    """
+    Prevents the app from running if the user is not logged in.
+    """
+    try:
+        st.user.is_logged_in
+    except AttributeError:
+        ALERT("User is not logged in. Please log in to continue.")
+        if st.button("Login", type="primary"):st.login()
+        st.stop()
+def mainload():
+    """
+    Main function to load the application.
+    """
+    initialize_environment()
+    check_secrets_file()
+    prevent_st_user_not_logged_in()
+    
+    st.set_page_config(page_title="FonDeDeNaJa", page_icon=":guardsman:", layout="wide")
+    
+    # Load configuration
+    config = Config()
+    
+    # Initialize user
+    user = whoami(st.session_state.get('email', None), st.session_state.get('devkey', None))
+    
+    # Render sidebar
+    sidebar()
