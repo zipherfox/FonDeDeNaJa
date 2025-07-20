@@ -24,17 +24,17 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             set -e
-            echo "Starting deployment on server at $(date)"
+            echo "[GitHub Action] 🚀 Starting deployment on server at \$(date)"
 
-            cd /home/gha_deploy/FonDeDeNaJa  # Adjust if your repo lives elsewhere
+            cd /home/gha_deploy/FonDeDeNaJa
 
-            echo "Pulling latest code..."
+            echo "📥 Force syncing latest code from origin/main..."
             git config --global --add safe.directory /home/gha_deploy/FonDeDeNaJa
-            git pull origin main
+            git fetch origin
+            git reset --hard origin/main
 
-            echo "Rebuilding and restarting containers..."
-            docker compose pull
-            docker compose up -d --build
+            echo "🧱 Running deployment script..."
+            sudo deploy-app
 
-            echo "✅ Deployment done at $(date)"
+            echo "✅ Deployment completed at \$(date)"
           EOF
