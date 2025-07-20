@@ -169,38 +169,7 @@ class whoami:
                 self.message = raw_msg.format(name=self.name, access=self.access, email=self.email)
                 st.write("WARNING : DEVELOPER MODE ENABLED")
                 st.toast("You are in Developer Mode")
-        page_access = {
-            "1_Entry.py": 1,
-            "2_About_Me.py": 1,
-            "3_Grader.py": 2,
-        }
-
-        page_titles = {
-            "main.py": "Home",
-            "hello.py": "Hello",
-            "profile.py": "Profile",
-            "admin.py": "Admin",
-            "dev.py": "Developer",
-        }
-
-        nav_pages = []
-        access_level = getattr(self, "num_access", None)
-        if access_level is not None:
-            try:
-                user_access = int(access_level)
-            except Exception:
-                user_access = 0
-            for page, min_access in page_access.items():
-                if user_access >= min_access:
-                    nav_pages.append((page_titles.get(page, page), page))
-        else:
-            nav_pages.append(("Home", "main.py"))
-
-        if nav_pages:
-            selected_page = st.sidebar.selectbox("Navigate", [t for t, _ in nav_pages], key="sidebar_nav")
-            # Navigation logic should be handled externally using selected_page
-        else:
-            st.sidebar.write("No pages available for your access level.")
+        # Navigation logic moved to sidebar()
 def register(email):
     """
     Register a user by checking if their email exists in the user database.
@@ -224,7 +193,7 @@ def sidebar():
     """
     st.sidebar.title("User Information")
     user = whoami(st.session_state.get('email', None), st.session_state.get('devkey', None))
-    
+
     if user.registered:
         st.sidebar.write(f"**Name:** {user.name}")
         st.sidebar.write(f"**Role:** {user.role}")
@@ -233,9 +202,41 @@ def sidebar():
         st.sidebar.write(f"**Message:** {user.message}")
     else:
         st.sidebar.warning("You are not registered. Please contact the administrator.")
-    
+
     if user.DEVMODE:
         st.sidebar.write("Developer Mode is enabled.")
+
+    # Navigation selectbox logic moved here
+    page_access = {
+        "1_Entry.py": 1,
+        "2_About_Me.py": 1,
+        "3_Grader.py": 2,
+    }
+    page_titles = {
+        "main.py": "Home",
+        "hello.py": "Hello",
+        "profile.py": "Profile",
+        "admin.py": "Admin",
+        "dev.py": "Developer",
+    }
+    nav_pages = []
+    access_level = getattr(user, "num_access", None)
+    if access_level is not None:
+        try:
+            user_access = int(access_level)
+        except Exception:
+            user_access = 0
+        for page, min_access in page_access.items():
+            if user_access >= min_access:
+                nav_pages.append((page_titles.get(page, page), page))
+    else:
+        nav_pages.append(("Home", "main.py"))
+
+    if nav_pages:
+        selected_page = st.sidebar.selectbox("Navigate", [t for t, _ in nav_pages], key="sidebar_nav")
+        # Navigation logic should be handled externally using selected_page
+    else:
+        st.sidebar.write("No pages available for your access level.")
 def prevent_st_user_not_logged_in():
     """
     Prevents the app from running if the user is not logged in.
