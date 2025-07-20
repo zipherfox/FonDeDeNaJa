@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Capture start time
+START_TIME=$(date +%s)
 # Setup Wizard for FonDeDeNaJa project (Linux shell version)
 
 # ANSI color codes
@@ -8,7 +10,8 @@ RED="\033[0;31m"
 CYAN="\033[0;36m"
 BLUE="\033[0;34m"
 NC="\033[0m"  # No Color
-  
+CHECK_ORIGI=("answer_key.csv" "settings.yaml" "user.csv")
+
 # Gimmicks messages (for fun!)
 gimmicks=(
   "Asking docker if it can get your app to space"
@@ -54,10 +57,13 @@ if [ "$SKIP_INTERACTIVE" = false ]; then
     done
   fi
   if [ "$all_present" = true ]; then
-    read -p "All required items found at default locations. Apply these defaults? [Y/N]: " apply_ans
+    read -p "Found required items at default locations. Apply these defaults instead? [Y/N]: " apply_ans
     if [[ "$apply_ans" =~ ^[Yy] ]]; then
       USE_DEFAULTS=true
       GEN_ENABLED=false
+    else
+      use_defaults=false
+        echo -e "${YELLOW}Continuing with interactive setup.${NC}"
     fi
   fi
 fi
@@ -109,9 +115,9 @@ missing_entries=()
 echo -e "Checking required directories:"
 for d in "${required_dirs[@]}"; do
   if [ -d "$d" ]; then
-    echo -e "${GREEN}✔ [OK DIR]${NC}   $d"
+    echo -e "${GREEN}✔ [DIR OK]${NC}   $d"
   else
-    echo -e "${YELLOW}✗ [MISSING DIR]${NC} $d"
+    echo -e "${RED}✗ [MISSING DIR]${NC} $d"
     if [ "$GEN_ENABLED" = true ]; then
       if mkdir -p "$d"; then
         echo -e "${GREEN}✔ [CREATED DIR]${NC} $d"
@@ -131,7 +137,7 @@ for f in "${required_files[@]}"; do
   if [ -f "$f" ]; then
     echo -e "${GREEN}✔ [OK]${NC}       $f"
   else
-    echo -e "${YELLOW}✗ [MISSING]${NC} $f"
+    echo -e "${RED}✗ [MISSING]${NC}  $f"
     if [ "$GEN_ENABLED" = true ]; then
       if [ "$(basename "$f")" = "secrets.toml" ]; then
         echo -e "${CYAN}Please create a secrets.toml manually with your Streamlit authentication secrets (for st.login).${NC}"
@@ -151,15 +157,38 @@ for f in "${required_files[@]}"; do
     fi
   fi
 done
+# Check if key data files are still default (match template)
+default_warn=()
+for fname in "${CHECK_ORIGI[@]}"; do
+  data_file="$DATA_DIR/$fname"
+  template_file="$TEMPLATES_DIR/data/$fname"
+  if [ -f "$data_file" ] && [ -f "$template_file" ]; then
+    if diff -q "$data_file" "$template_file" >/dev/null; then
+      default_warn+=("$fname")
+    fi
+  fi
+done
+if [ ${#default_warn[@]} -gt 0 ]; then
+  echo -e "${YELLOW}[🛈 INFO]${NC} The following files in your data directory are still identical to their default templates:"
+  for f in "${default_warn[@]}"; do
+    echo -e "  - $f"
+  done
+  echo -e "${YELLOW}Consider editing these files to customize your configuration.${NC}"
+fi
 
 # Final summary
 if [ "$missing" = true ]; then
-  echo -e "\nSome required files or directories are missing:"
+  echo -e "\n${RED}[ERROR]${NC} Some required files or directories are missing:"
   for item in "${missing_entries[@]}"; do
     echo -e " - $item"
   done
   echo -e "\nPlease create or restore the above items before continuing."
-  exit 1
+  # Calculate and show task duration and exit code
+  EXIT_CODE=1
+  END_TIME=$(date +%s)
+  ELAPSED=$((END_TIME - START_TIME))
+  echo -e "\n${BLUE}Task completed in ${ELAPSED}s. Exit code: $EXIT_CODE${NC}"
+  exit $EXIT_CODE
 fi
 
 # Final success message with "mad" factor
@@ -171,4 +200,59 @@ else
   rand=$((RANDOM % ${#gimmicks[@]}))
   echo -e "${CYAN}- ${gimmicks[$rand]} -${NC}"
 fi
-exit 0
+# Check for sudo/root or docker group membership
+CAN_DOCKER=false
+if [ "$EUID" -eq 0 ]; then
+  CAN_DOCKER=true
+elif groups "$USER" 2>/dev/null | grep -q '\bdocker\b'; then
+  CAN_DOCKER=true
+elif sudo -n true 2>/dev/null; then
+  CAN_DOCKER=true
+fi
+
+# Offer to run docker compose if possible
+if [ "$CAN_DOCKER" = true ]; then
+  echo -e "\n${CYAN}[INFO] You have sufficient privileges to run Docker Compose.${NC}"
+  read -p "Would you like to run 'docker compose up -d' now? [Y/N]: " docker_ans
+  if [[ "$docker_ans" =~ ^[Yy] ]]; then
+    echo -e "${BLUE}Attempting to start Docker Compose...${NC}"
+    if command -v docker-compose >/dev/null 2>&1; then
+      sudo docker-compose up -d
+    else
+      sudo docker compose up -d
+    fi
+    DOCKER_EXIT=$?
+    if [ $DOCKER_EXIT -eq 0 ]; then
+      echo -e "${GREEN}Docker Compose started successfully.${NC}"
+    else
+      echo -e "${RED}Docker Compose failed to start. Attempting 'sudo deploy-app' as a fallback...${NC}"
+      FALLBACK_FAILED=false
+      if command -v deploy-app >/dev/null 2>&1; then
+        sudo deploy-app
+        DEPLOY_EXIT=$?
+        if [ $DEPLOY_EXIT -eq 0 ]; then
+          echo -e "${GREEN}Fallback 'deploy-app' ran successfully.${NC}"
+        else
+          echo -e "${RED}Fallback 'deploy-app' failed. Please check your deployment setup.${NC}"
+          FALLBACK_FAILED=true
+        fi
+      else
+        echo -e "${RED}Fallback 'deploy-app' not found in PATH.${NC}"
+        FALLBACK_FAILED=true
+      fi
+      if [ "$FALLBACK_FAILED" = true ]; then
+        echo -e "\n${YELLOW}[INFO] If this is your service account, You can add make a script that use docker compose up -d with sudo permissions and edit your sudoers file to allow running it without a password. This script will try deploy-app for you.${NC}"
+      fi
+    fi
+  fi
+else
+  echo -e "\n${YELLOW}[INFO] You do not have sufficient privileges to run Docker Compose automatically.${NC}"
+  echo -e "You can run 'docker compose up -d' manually if needed."
+fi
+
+# Calculate and show task duration and exit code
+EXIT_CODE=0
+END_TIME=$(date +%s)
+ELAPSED=$((END_TIME - START_TIME))
+echo -e "\n${BLUE}Task completed in ${ELAPSED}s. Exit code: $EXIT_CODE${NC}"
+exit $EXIT_CODE
