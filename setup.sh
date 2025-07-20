@@ -259,3 +259,4 @@ END_TIME=$(date +%s)
 ELAPSED=$((END_TIME - START_TIME))
 echo -e "\n${BLUE}Task completed in ${ELAPSED}s. Exit code: $EXIT_CODE${NC}"
 exit $EXIT_CODE
+# End of setup script
