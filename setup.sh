@@ -210,7 +210,7 @@ elif sudo -n true 2>/dev/null; then
   CAN_DOCKER=true
 fi
 
-# Offer to run docker compose if possible
+# Offer to run docker compose if possible, otherwise always attempt deploy-app
 if [ "$CAN_DOCKER" = true ]; then
   echo -e "\n${CYAN}[INFO] You have sufficient privileges to run Docker Compose.${NC}"
   read -p "Would you like to run 'docker compose up -d' now? [Y/N]: " docker_ans
@@ -224,30 +224,33 @@ if [ "$CAN_DOCKER" = true ]; then
     DOCKER_EXIT=$?
     if [ $DOCKER_EXIT -eq 0 ]; then
       echo -e "${GREEN}Docker Compose started successfully.${NC}"
+      DOCKER_OR_DEPLOYED=true
     else
-      echo -e "${RED}Docker Compose failed to start. Attempting 'sudo deploy-app' as a fallback...${NC}"
-      FALLBACK_FAILED=false
-      if command -v deploy-app >/dev/null 2>&1; then
-        sudo deploy-app
-        DEPLOY_EXIT=$?
-        if [ $DEPLOY_EXIT -eq 0 ]; then
-          echo -e "${GREEN}Fallback 'deploy-app' ran successfully.${NC}"
-        else
-          echo -e "${RED}Fallback 'deploy-app' failed. Please check your deployment setup.${NC}"
-          FALLBACK_FAILED=true
-        fi
-      else
-        echo -e "${RED}Fallback 'deploy-app' not found in PATH.${NC}"
-        FALLBACK_FAILED=true
-      fi
-      if [ "$FALLBACK_FAILED" = true ]; then
-        echo -e "\n${YELLOW}[INFO] If this is your service account, You can add make a script that use docker compose up -d with sudo permissions and edit your sudoers file to allow running it without a password. This script will try deploy-app for you.${NC}"
-      fi
+      echo -e "${RED}Docker Compose failed to start."
     fi
   fi
-else
-  echo -e "\n${YELLOW}[INFO] You do not have sufficient privileges to run Docker Compose automatically.${NC}"
-  echo -e "You can run 'docker compose up -d' manually if needed."
+fi
+
+# Always attempt deploy-app if not already deployed by docker compose
+if [ -z "$DOCKER_OR_DEPLOYED" ]; then
+  echo -e "${BLUE}Attempting to run 'sudo deploy-app' for non-root/service account deployment...${NC}"
+  FALLBACK_FAILED=false
+  if command -v deploy-app >/dev/null 2>&1; then
+    sudo deploy-app
+    DEPLOY_EXIT=$?
+    if [ $DEPLOY_EXIT -eq 0 ]; then
+      echo -e "${GREEN}Fallback 'deploy-app' ran successfully.${NC}"
+    else
+      echo -e "${RED}Fallback 'deploy-app' failed. Please check your deployment setup.${NC}"
+      FALLBACK_FAILED=true
+    fi
+  else
+    echo -e "${RED}Fallback 'deploy-app' not found in PATH.${NC}"
+    FALLBACK_FAILED=true
+  fi
+  if [ "$FALLBACK_FAILED" = true ]; then
+    echo -e "\n${YELLOW}[INFO] If this is your service account, You can add make a script that use docker compose up -d with sudo permissions and edit your sudoers file to allow running it without a password. This script will try deploy-app for you.${NC}"
+  fi
 fi
 
 # Calculate and show task duration and exit code
