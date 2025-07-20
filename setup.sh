@@ -57,6 +57,7 @@ if [ "$SKIP_INTERACTIVE" = false ]; then
     read -p "All required items found at default locations. Apply these defaults? [Y/N]: " apply_ans
     if [[ "$apply_ans" =~ ^[Yy] ]]; then
       USE_DEFAULTS=true
+      GEN_ENABLED=false
     fi
   fi
 fi
