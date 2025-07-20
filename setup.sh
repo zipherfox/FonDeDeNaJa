@@ -8,6 +8,15 @@ RED="\033[0;31m"
 CYAN="\033[0;36m"
 BLUE="\033[0;34m"
 NC="\033[0m"  # No Color
+  
+# Gimmicks messages (for fun!)
+gimmicks=(
+  "Asking docker if it can get your app to space"
+  "Asking Fuji to receive Zipher's Steam gifts"
+  "Bond, James Bond"
+  "She sells sea shells by the shea sho DAMMIT!"
+  "Why are you gay? -w- Does that make you gay???"
+)
 
 # Load environment variables from .env if present
 if [ -f ".env" ]; then
@@ -31,13 +40,15 @@ read -p "Templates directory [${TEMPLATES_DIR}]: " input && [ -n "$input" ] && T
 read -p "Streamlit directory [${STREAMLIT_DIR}]: " input && [ -n "$input" ] && STREAMLIT_DIR="$input"
 read -p "App directory [${APP_DIR}]: " input && [ -n "$input" ] && APP_DIR="$input"
 
-# Prompt for auto-generation
+# Prompt for auto-generation with a 'mad' flag on invalid entries
+mad=false
 while true; do
   read -p "Auto-generate missing files and directories? [Y/N]: " gen_ans
   case "$gen_ans" in
     [Yy]) GEN_ENABLED=true; break;;
     [Nn]) GEN_ENABLED=false; break;;
-    *) echo -e "${YELLOW}Please enter Y or N.${NC}";;
+    "") echo -e "${YELLOW}Please enter Y or N.${NC}";;
+    *) echo -e "${RED}I ASKED Y OR N GODDAMMIT. HOW IS IT SO HARD TO UNDERSTAND SUCH A SIMPLE INSTRUCTION!${NC}"; mad=true;;
   esac
 done
 
@@ -113,5 +124,13 @@ if [ "$missing" = true ]; then
   exit 1
 fi
 
-echo -e "\n${GREEN}✔ All checks passed. Your environment looks good!${NC}"  
+# Final success message with "mad" factor
+if [ "$mad" = true ]; then
+  echo -e "\n${RED}All checks passed. Jeez I'm not paid enough for this s***!${NC}"
+else
+  echo -e "\n${GREEN}✔ All checks passed. Your environment looks good!${NC}"
+  # Show a random gimmick
+  rand=$((RANDOM % ${#gimmicks[@]}))
+  echo -e "${CYAN}- ${gimmicks[$rand]} -${NC}"
+fi
 exit 0
