@@ -76,7 +76,7 @@ else
   GEN_ENABLED=false
 fi
 
-if [ "$SKIP_INTERACTIVE" = false ]; then
+if [ "$SKIP_INTERACTIVE" = false ] && [ -z "$GEN_ENABLED" ]; then
   # Prompt for auto-generation with a 'mad' flag on invalid entries
   mad=false
   while true; do
