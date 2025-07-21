@@ -7,11 +7,12 @@ import shutil
 from dotenv import load_dotenv
 from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
+import streamlit.components.v1 as components
 colorama_init(autoreset=True)
 
 def _browser_console_log(msg, level="log"):
     """
-    Log a message to the browser's console using JavaScript via st.markdown.
+    Log a message to the browser's console using JavaScript via components.
     Level can be 'log', 'warn', or 'error'.
     """
     js = f"""
@@ -19,7 +20,7 @@ def _browser_console_log(msg, level="log"):
     console.{level}({msg!r});
     </script>
     """
-    st.markdown(js, unsafe_allow_html=True)
+    components.html(js, height=0)
 def ALERT(msg: str,log: str=None):
     st.error(msg, icon="🚨")
     _browser_console_log(log if log else msg, level="error")
@@ -79,7 +80,6 @@ def check_secrets_file():
     secrets_path = os.path.join(os.getenv("STREAMLIT_DIR", ".streamlit"), "secrets.toml")
     if not os.path.isfile(secrets_path):
         return WARN("secrets.toml file not found. Please create one in the .streamlit directory.")
-
     try:
         secrets_data = toml.load(secrets_path)
         if "auth" not in secrets_data:
