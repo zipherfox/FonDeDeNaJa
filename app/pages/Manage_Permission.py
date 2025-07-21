@@ -3,7 +3,6 @@ from liberty import WARN, mainload, whoami
 import pandas as pd
 import os
 st.title("Manage Permissions")
-mainload()
 @st.fragment
 def editable_user_table(csv_path=os.getenv("USER_DATA_FILE", "data/user.csv")):
     st.info(f"[DEBUG] Using user CSV file: {csv_path}")
