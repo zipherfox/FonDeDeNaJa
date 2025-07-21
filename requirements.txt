@@ -6,3 +6,4 @@ opencv-python
 PyYAML
 dotenv
 colorama
+terminal-img
