@@ -279,9 +279,14 @@ def prevent_st_user_not_logged_in():
     """
     Prevents the app from running if the user is not logged in.
     """
-    try:st.user.is_logged_in
+    try:
+        st.user.is_logged_in
+        if st.user.email is None:
+            raise Exception("st.user.email is None")
     except AttributeError:
         WARN("You are not logged in. Please log in to continue.",log="A user is not logged in. And trying to access the app.")
+        if st.button("Login", type="primary"):st.login()
+    except Exception("st.user.email is None"):
         if st.button("Login", type="primary"):st.login()
 def mainload():
     """
