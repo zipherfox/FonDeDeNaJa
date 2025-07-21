@@ -7,3 +7,4 @@ PyYAML
 dotenv
 colorama
 terminal-img
+cv2
