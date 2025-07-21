@@ -9,7 +9,7 @@ import platform
 if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-from bubble_grader_frontend import grade_sheet  # rename this to your backend file name
+from bubble_grader_frontend import grade_sheet
 
 st.set_page_config(page_title="Bubble Sheet Grader", layout="wide")
 st.title("📝 Bubble Sheet Grader")
@@ -71,6 +71,3 @@ if uploaded_files:
         st.subheader("📥 Export All Results")
         merged_csv = all_df.to_csv(index=False).encode("utf-8")
         st.download_button("⬇️ Download All Results CSV", merged_csv, "all_students_results.csv", "text/csv")
-
-
-
