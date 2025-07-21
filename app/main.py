@@ -49,6 +49,5 @@ class App:
 if __name__ == "__main__":
     app = App()
     app.clock()
-    lib._browser_console_log("Logging initialized.", "warn")
     lib.mainload()
     app.run()
