@@ -48,5 +48,7 @@ class App:
         st.write("This program is designed to validate the scores of bubble sheets. It is also capable of determining the access level of users based on their registered email addresses.")
 if __name__ == "__main__":
     app = App()
+    app.clock()
+    lib._browser_console_log("Logging initialized.", "warn")
+    lib.mainload()
     app.run()
-    lib.prevent_st_user_not_logged_in()
