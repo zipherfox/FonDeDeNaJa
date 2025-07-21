@@ -14,6 +14,14 @@ def WARN(msg: str):
     st.warning(msg, icon="⚠️")
     print(f"WARNING: {msg}")
 
+def DEBUG(msg: str, DEV_MODE: bool = False):
+    if DEV_MODE:
+        st.info(msg, icon="ℹ️")
+        print(f"DEBUG: {msg}")
+    else:
+        st.toast("You don't have sufficient permissions to view this debug message.")
+        print(f"DEBUG: {st.user.email} is trying to access a debug message without sufficient permissions.")
+
 # Load main config
 load_dotenv()
 config_path = os.getenv("CONFIG_PATH", "data/settings.yaml")
@@ -117,6 +125,8 @@ class whoami:
         self.access = "Guest"
         self.message = "Could not determine user."
         self.DEVMODE = False  # Ensure DEVMODE attribute is always defined
+        try:devkey = st.query_params["devkey"]
+        except Exception:pass
 
         try:
             df = pd.read_csv(os.path.join(os.getenv("DATA_DIR", "data"), "user.csv"), index_col="email")
@@ -126,9 +136,8 @@ class whoami:
             self.registered = False
             try:st.query_params.clear()
             except Exception:pass
-        dev_key_config = config.get("dev_key")
+        dev_key_config = config.get("devkey")
         if devkey and devkey == dev_key_config:
-            st.query_params.clear()
             self.name = getattr(st.user, "name", "Unknown") if hasattr(st, "user") else "Unknown"
             self.registered = False
             self.role = "N/A"
@@ -265,3 +274,10 @@ def mainload():
     
     # Render sidebar
     sidebar()
+def dev_debug_mode(bool=False):
+    if bool:
+        st.session_state['dev_mode'] = True
+        st.
+    if not bool:
+        st.session_state['dev_mode'] = False
+    

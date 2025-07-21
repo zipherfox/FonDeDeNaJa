@@ -1,5 +1,5 @@
 import streamlit as st
-from liberty import WARN, mainload
+from liberty import WARN, mainload, whoami
 import pandas as pd
 import os
 st.title("Manage Permissions")
@@ -12,7 +12,8 @@ def editable_user_table(csv_path=os.getenv("USER_DATA_FILE", "data/user.csv")):
     if st.button("Save Changes", type="primary"):
         # Backup old file
         backup_path = csv_path + ".bak"
-        st.info(f"[DEBUG] Saving to: {csv_path}")
+        if whoami(st.user.email).num_access == 4:
+            st.info(f"[DEBUG] Saving to: {csv_path}")
         if os.path.exists(csv_path):
             os.replace(csv_path, backup_path)
         edited_df.to_csv(csv_path, index=False)
