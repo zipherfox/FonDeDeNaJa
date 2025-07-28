@@ -166,8 +166,6 @@ class whoami:
                 self.message = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
             else:
                 self.message = raw_msg.format(**formats)
-                st.write("WARNING : DEVELOPER MODE ENABLED")
-                st.toast("You are in Developer Mode")
     def __str__(self):
         return self.message
 def sidebar(msg: str = None,user: str = None):
