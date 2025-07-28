@@ -227,10 +227,10 @@ def mainload():
     import intialize
     from appconfig import settings
     from liberty import whoami, sidebar, prevent_st_user_not_logged_in
+    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide")
     initialize_environment()
     check_secrets_file()
     prevent_st_user_not_logged_in()
-    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide")
     # Initialize user
     user = whoami()
     # Render sidebar

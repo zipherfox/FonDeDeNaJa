@@ -1,7 +1,7 @@
 import streamlit as st
 from liberty import whoami, mainload
-st.title("User Information")
 mainload()
+st.title("User Information")
 user = whoami(devkey=st.query_params.get('devkey'))
 if st.user.is_logged_in:st.image(st.user["picture"])
 if user.name == "Zipherfox":st.write(f":blue-background[**Name**] :blue[{user.name}] (:grey[{st.user['name']}])") 
