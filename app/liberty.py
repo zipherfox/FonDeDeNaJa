@@ -84,10 +84,23 @@ def initialize_environment():
 class whoami:
     def __init__(self, email: str = None, devkey: str = None):
         if email is None:
-            print("No email provided in whoami function. Attempting st.user.email")
-            SYSLOG("Dear developer : No email provided in whoami function. Attempting st.user.email", flag="WARN")
-            try:email = st.user.email
-            except AttributeError:SYSLOG("Fallback to st.user.email failed.\n> Double check your Streamlit authentication setup.\n> Double check your code to use user's email in whoami function.")
+            devkey_val = None
+            try:
+                devkey_val = st.query_params.get('devkey')
+            except Exception:
+                pass
+            if settings.get("enable_devkey", False) and devkey_val == settings.get("dev_key", "L4D2"):
+                # Devkey mode: skip st.user entirely
+                email = "devkey@localhost"
+                self.DEVMODE = True
+                print("Devkey mode: using safe defaults for user info.")
+            else:
+                print("No email provided in whoami function. Attempting st.user.email")
+                SYSLOG("Dear developer : No email provided in whoami function. Attempting st.user.email", flag="WARN")
+                try:
+                    email = st.user.email
+                except Exception:
+                    SYSLOG("Fallback to st.user.email failed.\n> Double check your Streamlit authentication setup.\n> Double check your code to use user's email in whoami function.")
         self.email = email
         self.name = "Unknown"
         self.role = "Guest"
@@ -162,8 +175,10 @@ def sidebar(msg: str = None,user: str = None):
     Render the sidebar with user information and navigation options.
     """
     st.sidebar.title("User Information")
-    try:user = whoami(email=st.user.email,devkey=st.query_params('devkey'))
+    try:user = whoami(st.user.email,devkey=st.query_params('devkey'))
     except Exception as e:user = user # Fallback to provided user if st.user.email is not available but user is provided in the function call
+    except AttributeError:
+        pass  # If st.user is not available, we will use the provided user or None
     if user is None:
         st.sidebar.warning("User information is not available. Please log in.")
     elif getattr(user, "DEVMODE", False):
