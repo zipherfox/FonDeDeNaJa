@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
 import streamlit.components.v1 as components
-from config import settings
+from .config import settings
 colorama_init(autoreset=True)
 
 
@@ -232,7 +232,7 @@ def mainload():
     initialize_environment()
     check_secrets_file()
     prevent_st_user_not_logged_in()
-    st.set_page_config(page_title="FonDeDeNaJa", page_icon=":pencil:", layout="wide")
+    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide")
     # Initialize user
     user = whoami()
     # Render sidebar
