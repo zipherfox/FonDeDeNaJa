@@ -7,7 +7,6 @@ PyYAML
 dotenv
 colorama
 terminal-img
-cv2
 opencv-python-headless
 numpy
 pytesseract
