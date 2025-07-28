@@ -175,7 +175,7 @@ def sidebar(msg: str = None,user: str = None):
     Render the sidebar with user information and navigation options.
     """
     st.sidebar.title("User Information")
-    try:user = whoami(st.user.email,devkey=st.query_params('devkey'))
+    try:user = whoami(devkey=st.query_params('devkey'))
     except Exception as e:user = user # Fallback to provided user if st.user.email is not available but user is provided in the function call
     except AttributeError:
         pass  # If st.user is not available, we will use the provided user or None
