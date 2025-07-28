@@ -137,7 +137,6 @@ for f in "${required_files[@]}"; do
   if [ -f "$f" ]; then
     echo -e "${GREEN}✔ [OK]${NC}       $f"
   else
-    echo -e "${RED}✗ [MISSING]${NC}  $f"
     if [ "$GEN_ENABLED" = true ]; then
       if [ "$(basename "$f")" = "secrets.toml" ]; then
         echo -e "${CYAN}Please create a secrets.toml manually with your Streamlit authentication secrets (for st.login).${NC}"
@@ -153,6 +152,7 @@ for f in "${required_files[@]}"; do
         echo -e "${GREEN}✔ [GENERATED]${NC} $f"
       fi
     else
+      echo -e "${RED}✗ [MISSING]${NC}  $f"
       missing=true; missing_entries+=("$f")
     fi
   fi

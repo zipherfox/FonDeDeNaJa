@@ -20,6 +20,7 @@ try:
     if st.button("Logout"):
         st.logout()
         st.success("You have been logged out.")
+        st.cache_resource.clear()
         st.experimental_rerun()
 except AttributeError:st.error("You are not logged in. Please log in to view your information.")
 except NameError:pass
