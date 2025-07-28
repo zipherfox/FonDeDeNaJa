@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
 import streamlit.components.v1 as components
-from config import settings
+from .config import settings
 colorama_init(autoreset=True)
 
 
@@ -216,17 +216,11 @@ def prevent_st_user_not_logged_in():
     """
     Prevents the app from running if the user is not logged in.
     """
-    try:
-        st.user.is_logged_in
-        if st.user.email is None:
-            raise Exception("st.user.email is None")
+    try:st.user.is_logged_in
     except AttributeError:
+        if st.button("Login", type="primary"):st.login()
+        st.stop()
         SYSLOG("A user is not logged in. And trying to access the app.")
-        if st.button("Login", type="primary"):st.login()
-        st.stop()
-    except Exception("st.user.email is None"):
-        if st.button("Login", type="primary"):st.login()
-        st.stop()
 def mainload():
     """
     Main function to load the application.
@@ -238,9 +232,7 @@ def mainload():
     initialize_environment()
     check_secrets_file()
     prevent_st_user_not_logged_in()
-    
-    st.set_page_config(page_title="FonDeDeNaJa", page_icon=":pencil:", layout="wide")
-
+    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide")
     # Initialize user
     user = whoami()
     # Render sidebar

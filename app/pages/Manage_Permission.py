@@ -4,7 +4,6 @@ import pandas as pd
 import os
 st.title("Manage Permissions")
 mainload()
-
 @st.fragment
 def editable_user_table(csv_path=os.getenv("USER_DATA_FILE", "data/user.csv")):
     df = pd.read_csv(csv_path)
