@@ -207,14 +207,9 @@ def prevent_st_user_not_logged_in():
     Prevents the app from running if the user is not logged in.
     """
     try:
-        st.query_params.get("devkey")
-        if st.query_params.get("devkey") is not None:
-            SYSLOG(f"Detected devkey in query params is {st.query_params.get('devkey')}", flag="DEBUG")
-            st.write("You are using a developer key. Some features may not work as expected. Especially the login system and user information.")
-        else:
-            st.user.is_logged_in
-            if st.user.email is None:
-                raise Exception("st.user.email is None")
+        st.user.is_logged_in
+        if st.user.email is None:
+            raise Exception("st.user.email is None")
     except AttributeError:
         SYSLOG("A user is not logged in. And trying to access the app.")
         if st.button("Login", type="primary"):st.login()
