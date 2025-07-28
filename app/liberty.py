@@ -219,6 +219,27 @@ def prevent_st_user_not_logged_in():
         if st.button("Login", type="primary"):st.login()
         st.stop()
         SYSLOG("A user is not logged in. And trying to access the app.")
+def accessible_pages():
+    """
+    Returns a dictionary of accessible pages based on user access level.
+    """
+    user = whoami()
+    access_level = getattr(user, "num_access", None)
+    if access_level is not None:
+        try:
+            user_access = int(access_level)
+        except Exception:
+            user_access = 0
+    else:
+        user_access = 0
+
+    page_access = {
+        "1_Entry.py": 1,
+        "2_About_Me.py": 1,
+        "3_Grader.py": 2,
+    }
+    accessible = {page: title for page, title in page_access.items() if user_access >= page_access[page]}
+    return accessible
 def mainload():
     """
     Main function to load the application.
@@ -226,13 +247,10 @@ def mainload():
     """
     import intialize
     from appconfig import settings
-    from liberty import whoami, sidebar, prevent_st_user_not_logged_in
-    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide")
+    from liberty import whoami, sidebar, prevent_st_user_not_logged_in, accessible_pages
+    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide", menu_items=accessible_pages())
     initialize_environment()
     check_secrets_file()
     prevent_st_user_not_logged_in()
-    # Initialize user
-    user = whoami()
-    # Render sidebar
     sidebar()
     
