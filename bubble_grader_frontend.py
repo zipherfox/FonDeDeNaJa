@@ -1,138 +1,109 @@
+# omr_digit_grader.py
 import cv2
 import numpy as np
-import pytesseract
+import os
+from imutils.perspective import four_point_transform
+from imutils import contours
+import imutils
 
-def extract_metadata(img):
-    h, w = img.shape[:2]
-    name_region = img[0:100, 0:int(w * 0.6)]
-    id_region = img[0:100, int(w * 0.6):w]
+def load_and_preprocess(image_path):
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    edged = cv2.Canny(blurred, 75, 200)
+    return image, gray, edged
 
-    def preprocess_text_region(region):
-        gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        return thresh
+def find_document_contour(edged):
+    cnts = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)
+    for c in cnts:
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+        if len(approx) == 4:
+            return approx
+    return None
 
-    name_thresh = preprocess_text_region(name_region)
-    id_thresh = preprocess_text_region(id_region)
+def extract_bubbles(warped_gray):
+    thresh = cv2.threshold(warped_gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
 
-    name = pytesseract.image_to_string(name_thresh, config="--psm 6").strip()
-    student_id = pytesseract.image_to_string(id_thresh, config="--psm 7 -c tessedit_char_whitelist=0123456789").strip()
+    question_cnts = []
+    for c in cnts:
+        (x, y, w, h) = cv2.boundingRect(c)
+        aspect_ratio = w / float(h)
+        if w >= 20 and h >= 20 and 0.3 <= aspect_ratio <= 1.0:
+            question_cnts.append(c)
 
-    name = name if name else "Unknown"
-    student_id = student_id if student_id else "Unknown"
-    return name, student_id
+    question_cnts = contours.sort_contours(question_cnts, method="top-to-bottom")[0]
+    return thresh, question_cnts
 
-def extract_bubbles(thresh_img):
-    contours, _ = cv2.findContours(thresh_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    bubbles = []
-    for c in contours:
-        x, y, w, h = cv2.boundingRect(c)
-        if 20 <= w <= 40 and 20 <= h <= 40 and 0.9 <= w/h <= 1.1:
-            bubbles.append((c, y, x))  # Store position for sorting
+def grade(thresh, question_cnts, answer_key):
+    questions = 30
+    choices_per_question = 10  # digits 0–9
+    correct = 0
+    results = []
 
-    # Sort into rows
-    bubbles = sorted(bubbles, key=lambda b: b[1])  # sort by y
-    rows = []
-    current_row = []
-    last_y = None
-    for b in bubbles:
-        if last_y is None or abs(b[1] - last_y) < 20:
-            current_row.append(b)
-        else:
-            rows.append(sorted(current_row, key=lambda b: b[2]))
-            current_row = [b]
-        last_y = b[1]
-    if current_row:
-        rows.append(sorted(current_row, key=lambda b: b[2]))
-    return [[b[0] for b in row] for row in rows if len(row) == 5]
+    for (q, i) in enumerate(range(0, len(question_cnts), choices_per_question)):
+        cnts = contours.sort_contours(question_cnts[i:i + choices_per_question])[0]
+        bubbled = None
 
-def get_answer_key(answer_img):
-    gray = cv2.cvtColor(answer_img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(
-        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY_INV, 11, 2
-    )
-    groups = extract_bubbles(thresh)
-    key = []
-    for group in groups:
-        values = []
-        for j, c in enumerate(group):
+        for (j, c) in enumerate(cnts):
             mask = np.zeros(thresh.shape, dtype="uint8")
             cv2.drawContours(mask, [c], -1, 255, -1)
             total = cv2.countNonZero(cv2.bitwise_and(thresh, thresh, mask=mask))
-            values.append((total, j))
-        key.append(max(values)[1])
-    return key
+            if bubbled is None or total > bubbled[0]:
+                bubbled = (total, j)
 
-def grade_sheet(student_img, answer_img, threshold_diff=300):
-    if student_img is None:
-        raise ValueError("Student image is None")
-
-    name, student_id = extract_metadata(student_img)
-    answer_key = get_answer_key(answer_img)
-
-    gray = cv2.cvtColor(student_img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(
-        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY_INV, 11, 2
-    )
-    student_groups = extract_bubbles(thresh)
-
-    correct = wrong = missing = multiple = 0
-    report = []
-    max_diff_observed = 0
-
-    for i, group in enumerate(student_groups):
-        values = []
-        for j, c in enumerate(group):
-            mask = np.zeros(thresh.shape, dtype="uint8")
-            cv2.drawContours(mask, [c], -1, 255, -1)
-            total = cv2.countNonZero(cv2.bitwise_and(thresh, thresh, mask=mask))
-            values.append((total, j))
-        values.sort(reverse=True)
-
-        if len(values) < 2:
-            report.append((i+1, "-", "Missing"))
-            missing += 1
-            continue
-
-        top1, top2 = values[0], values[1]
-        diff = top1[0] - top2[0]
-        max_diff_observed = max(max_diff_observed, diff)
-
-        if diff < threshold_diff:
-            report.append((i+1, "-", "Multiple"))
-            multiple += 1
-            continue
-
-        selected = top1[1]
-        correct_ans = answer_key[i] if i < len(answer_key) else None
-        if selected == correct_ans:
+        result = {
+            'question': q + 1,
+            'selected': bubbled[1],
+            'correct': answer_key.get(q + 1),
+            'is_correct': bubbled[1] == answer_key.get(q + 1)
+        }
+        if result['is_correct']:
             correct += 1
-            report.append((i+1, chr(65 + selected), "Correct"))
-        else:
-            wrong += 1
-            report.append((i+1, chr(65 + selected), f"Wrong (Ans: {chr(65 + correct_ans)})"))
+        results.append(result)
 
-    # Detect and fix if this is the answer key uploaded as a student sheet
-    total_questions = len(answer_key)
-    if multiple > total_questions * 0.9 and max_diff_observed < threshold_diff:
-        correct = total_questions
-        wrong = missing = multiple = 0
-        report = [(i+1, chr(65 + ans), "Correct") for i, ans in enumerate(answer_key)]
-        name = "Answer Key"
-        student_id = "000000"
+    score = (correct / questions) * 100
+    return results, score
 
-    summary = {
-        "correct": correct,
-        "wrong": wrong,
-        "missing": missing,
-        "multiple": multiple
-    }
+def parse_answer_key(image_path):
+    # Replace this with actual bubble extraction
+    # Dummy key for testing: All answers are digit 1
+    return {i: 1 for i in range(1, 31)}
 
-    return report, summary, name, student_id
+def main(answer_key_path, answer_sheets_dir):
+    answer_key = parse_answer_key(answer_key_path)
+
+    for filename in os.listdir(answer_sheets_dir):
+        if not filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+            continue
+
+        image_path = os.path.join(answer_sheets_dir, filename)
+        image, gray, edged = load_and_preprocess(image_path)
+        doc_cnt = find_document_contour(edged)
+        if doc_cnt is None:
+            print(f"Could not find document boundary in {filename}")
+            continue
+
+        warped = four_point_transform(image, doc_cnt.reshape(4, 2))
+        warped_gray = four_point_transform(gray, doc_cnt.reshape(4, 2))
+
+        thresh, question_cnts = extract_bubbles(warped_gray)
+        results, score = grade(thresh, question_cnts, answer_key)
+
+        print(f"\nResult for {filename}:")
+        for res in results:
+            print(f"Q{res['question']:02d}: Selected {res['selected']} | Correct: {res['correct']} | {'✅' if res['is_correct'] else '❌'}")
+        print(f"Final Score: {score:.2f}%")
+
+if __name__ == "__main__":
+    # Update these paths
+    answer_key_image = "answer_sheets/20250529110230_014.jpg"
+    student_answer_dir = "answer_sheets/"
+    main(answer_key_image, student_answer_dir)
 
 
 
