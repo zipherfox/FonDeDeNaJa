@@ -178,10 +178,6 @@ def sidebar(msg: str = None,user: str = None):
     except Exception as e:user = user # Fallback to provided user if st.user.email is not available but user is provided in the function call
     except AttributeError:
         pass  # If st.user is not available, we will use the provided user or None
-    if user is None:
-        st.sidebar.warning("User information is not available. Please log in.")
-    elif getattr(user, "DEVMODE", False):
-        st.sidebar.write(":[RED]Devkey is enabled.")
 
     # Navigation selectbox logic moved here
     page_access = {
