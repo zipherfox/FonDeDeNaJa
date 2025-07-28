@@ -1,10 +1,10 @@
 import importlib
-import env_check
+import intialize
 import streamlit as st
 import liberty as lib
 import datetime
 
-env_check.check_env_requirements()
+intialize.check_env_requirements()
 
 class App:
     def __init__(self):

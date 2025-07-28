@@ -192,10 +192,20 @@ if [ "$missing" = true ]; then
 fi
 
 # Final success message with "mad" factor
+# Show settings.toml only if all checks passed and not mad
 if [ "$mad" = true ]; then
   echo -e "\n${RED}All checks passed. Jeez I'm not paid enough for this s***!${NC}"
 else
   echo -e "\n${GREEN}✔ All checks passed. Your environment looks good!${NC}"
+  # Show contents of settings.toml
+  SETTINGS_TOML_PATH="$DATA_DIR/settings.toml"
+  if [ -f "$SETTINGS_TOML_PATH" ]; then
+    echo -e "\n${CYAN}Contents of $SETTINGS_TOML_PATH (Your settings):${NC}"
+    cat "$SETTINGS_TOML_PATH"
+  else
+    # Hopefully this won't happen since we checked earlier
+    echo -e "\n${RED}settings.toml not found at $SETTINGS_TOML_PATH${NC}"
+  fi
   # Show a random gimmick
   rand=$((RANDOM % ${#gimmicks[@]}))
   echo -e "${CYAN}- ${gimmicks[$rand]} -${NC}"

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import sys
+from config import settings
 from image import DrawImage
 image = DrawImage.from_url("https://content.imageresizer.com/images/memes/Side-eye-dog-meme-8.jpg",size=(80,40))
 
@@ -22,7 +23,7 @@ def check_env_requirements():
         streamlit_dir,
     ]
     required_files = [
-        data_dir / 'settings.yaml',
+        data_dir / 'settings.toml',
         streamlit_dir / 'secrets.toml',
         data_dir / 'user.csv',
     ]
@@ -39,10 +40,19 @@ def check_env_requirements():
             print(f" - {m}")
         print("\nPlease run the setup wizard or create the missing items before running the app.")
         sys.exit(1)
-    image.draw_image()
-    print("Environment check passed. All required directories and files are present.")
+    print("✔️ Environment check passed. All required directories and files are present.")
     # All good
     return True
+def check_config():
+    if settings.check() == False:
+        print("❌ Configuration check failed. Some required settings are missing.")
+        sys.exit(1)
+    # If we reach here, it means all required settings are present
+    print("✔️ Configuration check passed. All required settings are present.")
+    print("Using settings:")
+    for key, value in settings.to_dict().items():
+        print(f" - {key}: {value}")
 
 if __name__ == "__main__":
     check_env_requirements()
+    check_config()
