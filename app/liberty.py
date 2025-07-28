@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
 import streamlit.components.v1 as components
-from .config import settings
+from appconfig import settings
 colorama_init(autoreset=True)
 
 
@@ -227,7 +227,7 @@ def mainload():
     Doesn't accept any parameters.
     """
     import intialize
-    from config import settings
+    from appconfig import settings
     from liberty import whoami, sidebar, prevent_st_user_not_logged_in
     initialize_environment()
     check_secrets_file()

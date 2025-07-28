@@ -1,2 +1,2 @@
-from config import settings
+from appconfig import settings
 settings.check()
