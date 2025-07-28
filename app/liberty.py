@@ -291,6 +291,7 @@ def prevent_st_user_not_logged_in():
 def mainload():
     """
     Main function to load the application.
+    Doesn't accept any parameters.
     """
     initialize_environment()
     check_secrets_file()
