@@ -99,7 +99,7 @@ class whoami:
         st.session_state['access'] = self.access
         self.DEVMODE = False  # Ensure DEVMODE attribute is always defined
         try:
-            devkey = st.query_params["devkey"]
+            devkey = st.query_params("devkey")
             SYSLOG(f"Detected devkey in query params is {devkey}", flag="DEBUG")
         except Exception:pass
 
@@ -119,6 +119,7 @@ class whoami:
             self.role = "N/A"
             self.access = "DEVKEY ACCESS"
             self.message = "ONLY FOR DEVELOPMENT PURPOSES."
+            self.DEVMODE = True
         else:
             if email is None or email not in df.index or pd.isna(df.loc[email, "name"]):
                 self.name = getattr(st.user, "name", "Unknown")
@@ -149,7 +150,7 @@ class whoami:
             if "welcome_message" in df.columns and email in df.index:
                 raw_msg = df.loc[email, "welcome_message"].format(**formats)
             if pd.isna(raw_msg) or not raw_msg:
-                self.message = getattr(config, "msg_default", "Welcome {name} ({access})!").format(**formats)
+                self.message = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
             else:
                 self.message = raw_msg.format(**formats)
                 st.write("WARNING : DEVELOPER MODE ENABLED")
@@ -161,18 +162,12 @@ def sidebar(msg: str = None,user: str = None):
     Render the sidebar with user information and navigation options.
     """
     st.sidebar.title("User Information")
-    try:user = whoami(email=st.user.email)
+    try:user = whoami(email=st.user.email,devkey=st.query_params('devkey'))
     except Exception as e:user = user # Fallback to provided user if st.user.email is not available but user is provided in the function call
     if user is None:
         st.sidebar.warning("User information is not available. Please log in.")
-        st.stop()
-        return
-    if user.registered:st.sidebar.write(user)
-    else:
-        st.sidebar.warning("You are not registered. Please contact the administrator.")
-
-    if user.DEVMODE:
-        st.sidebar.write(":[RED]Developer Mode is enabled.")
+    elif getattr(user, "DEVMODE", False):
+        st.sidebar.write(":[RED]Devkey is enabled.")
 
     # Navigation selectbox logic moved here
     page_access = {
@@ -197,8 +192,7 @@ def sidebar(msg: str = None,user: str = None):
         for page, min_access in page_access.items():
             if user_access >= min_access:
                 nav_pages.append((page_titles.get(page, page), page))
-    else:
-        nav_pages.append(("Home", "main.py"))
+    else:nav_pages.append(("Home", "main.py"))
 
     if nav_pages:
         selected_page = st.sidebar.selectbox("Navigate", [t for t, _ in nav_pages], key="sidebar_nav")
@@ -213,11 +207,16 @@ def prevent_st_user_not_logged_in():
     Prevents the app from running if the user is not logged in.
     """
     try:
-        st.user.is_logged_in
-        if st.user.email is None:
-            raise Exception("st.user.email is None")
+        st.query_params.get("devkey")
+        if st.query_params.get("devkey") is not None:
+            SYSLOG(f"Detected devkey in query params is {st.query_params.get('devkey')}", flag="DEBUG")
+            st.write("You are using a developer key. Some features may not work as expected. Especially the login system and user information.")
+        else:
+            st.user.is_logged_in
+            if st.user.email is None:
+                raise Exception("st.user.email is None")
     except AttributeError:
-        WARN("You are not logged in. Please log in to continue.",log="A user is not logged in. And trying to access the app.")
+        SYSLOG("A user is not logged in. And trying to access the app.")
         if st.button("Login", type="primary"):st.login()
     except Exception("st.user.email is None"):
         if st.button("Login", type="primary"):st.login()
@@ -226,18 +225,17 @@ def mainload():
     Main function to load the application.
     Doesn't accept any parameters.
     """
+    import intialize
+    from config import settings
+    from liberty import whoami, sidebar, prevent_st_user_not_logged_in
     initialize_environment()
     check_secrets_file()
     prevent_st_user_not_logged_in()
     
     st.set_page_config(page_title="FonDeDeNaJa", page_icon=":pencil:", layout="wide")
-    
-    # Load configuration
-    config = Config()
-    
+
     # Initialize user
     user = whoami()
-    
     # Render sidebar
     sidebar()
     
