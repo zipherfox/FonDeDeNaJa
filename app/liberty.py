@@ -1,14 +1,15 @@
 import streamlit as st
 import pandas as pd
 import toml
-import dynaconf
 import os
 import shutil
 from dotenv import load_dotenv
 from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
 import streamlit.components.v1 as components
+from config import settings
 colorama_init(autoreset=True)
+
 
 
 def _browser_console_log(msg, level="log"):
@@ -66,8 +67,6 @@ def DEBUG(msg: str, DEV_MODE: bool = False, METHOD: str = None):
 
 # Load main config using Config class
 load_dotenv()
-config = Config()
-
 def check_secrets_file():
     secrets_path = os.path.join(os.getenv("STREAMLIT_DIR", ".streamlit"), "secrets.toml")
     if not os.path.isfile(secrets_path):
@@ -112,8 +111,8 @@ class whoami:
             self.registered = False
             try:st.query_params.clear()
             except Exception:pass
-        dev_key_config = getattr(config, "devkey", None)
-        if getattr(config, "enable_devkey", False) and devkey == dev_key_config:
+        dev_key_config = settings.get("dev_key", "L4D2")
+        if settings.get("enable_devkey", False) and devkey == dev_key_config:
             DEBUG(f"User {st.session_state.get()} used developer key.")
             self.name = getattr(st.user, "name", "Unknown") if hasattr(st, "user") else "Unknown"
             self.registered = False

@@ -1,1 +1,0 @@
-# Calculate and show task duration and exit code
