@@ -3,9 +3,7 @@ from liberty import whoami, mainload
 st.title("User Information")
 mainload()
 try:user = whoami(st.user.email,devkey=st.query_params.get('devkey'))
-except AttributeError:
-    st.error("You are not logged in. Please log in to view your information.")
-    if st.button("Login", type="primary"):st.login()
+except AttributeError:st.error("You are not logged in. Please log in to view your information.")
 if st.user.is_logged_in:st.image(st.user["picture"])
 if user.name == "Zipherfox":st.write(f":blue-background[**Name**] :blue[{user.name}] (:grey[{st.user['name']}])") 
 else:st.write(f":blue-background[**Name**] {user.name}")
