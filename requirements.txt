@@ -3,7 +3,6 @@ toml
 pandas
 Authlib
 opencv-python
-PyYAML
 dotenv
 colorama
 terminal-img
@@ -11,3 +10,4 @@ opencv-python-headless
 numpy
 pytesseract
 Pillow
+dynaconf

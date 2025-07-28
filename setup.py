@@ -132,8 +132,8 @@ def main():
         streamlit_dir,  # Ensure Streamlit config dir exists
     ]
     required_files = [
-        data_dir / 'settings.yaml',
-        templates_dir / 'settings.yaml',
+        data_dir / 'settings.toml',
+        templates_dir / 'settings.toml',
         streamlit_dir / 'secrets.toml',
         data_dir / 'user.csv',
     ]

@@ -10,7 +10,7 @@ RED="\033[0;31m"
 CYAN="\033[0;36m"
 BLUE="\033[0;34m"
 NC="\033[0m"  # No Color
-CHECK_ORIGI=("answer_key.csv" "settings.yaml" "user.csv")
+CHECK_ORIGI=("answer_key.csv" "settings.toml" "user.csv")
 
 # Gimmicks messages (for fun!)
 gimmicks=(
@@ -45,7 +45,7 @@ APP_DIR="${APP_DIR:-app}"
 # Auto-detect defaults: if all required dirs/files exist, offer to use them
 USE_DEFAULTS=false
 required_dirs=("$APP_DIR" "$APP_DIR/pages" "$DATA_DIR" "$TEMPLATES_DIR" "$IMG_DIR" "$STREAMLIT_DIR")
-required_files=("$DATA_DIR/settings.yaml" "$TEMPLATES_DIR/settings.yaml" "$STREAMLIT_DIR/secrets.toml" "$DATA_DIR/user.csv")
+required_files=("$DATA_DIR/settings.toml" "$TEMPLATES_DIR/data/settings.toml" "$STREAMLIT_DIR/secrets.toml" "$DATA_DIR/user.csv")
 if [ "$SKIP_INTERACTIVE" = false ]; then
   all_present=true
   for d in "${required_dirs[@]}"; do
@@ -98,7 +98,7 @@ fi
 
 # Required items
 required_dirs=("$APP_DIR" "$APP_DIR/pages" "$DATA_DIR" "$TEMPLATES_DIR" "$IMG_DIR" "$STREAMLIT_DIR")
-required_files=("$DATA_DIR/settings.yaml" "$TEMPLATES_DIR/settings.yaml" "$STREAMLIT_DIR/secrets.toml" "$DATA_DIR/user.csv")
+required_files=("$DATA_DIR/settings.toml" "$TEMPLATES_DIR/data/settings.toml" "$STREAMLIT_DIR/secrets.toml" "$DATA_DIR/user.csv")
 
 # Summary of used paths
 echo -e "\nUsing paths:"
@@ -146,7 +146,7 @@ for f in "${required_files[@]}"; do
       else
         mkdir -p "$(dirname "$f")"
         case "$f" in
-          *.yaml|*.yml) echo "# Default configuration" > "$f" ;;
+          *.toml|*.yml) echo "# Default configuration" > "$f" ;;
           *.csv) echo "email,name,role,access,welcome_message" > "$f" ;;
           *) touch "$f" ;;
         esac

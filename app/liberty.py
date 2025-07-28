@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import yaml
 import toml
+import dynaconf
 import os
 import shutil
 from dotenv import load_dotenv
@@ -9,6 +9,7 @@ from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
 import streamlit.components.v1 as components
 colorama_init(autoreset=True)
+
 
 def _browser_console_log(msg, level="log"):
     """
@@ -62,19 +63,10 @@ def DEBUG(msg: str, DEV_MODE: bool = False, METHOD: str = None):
         st.toast("You don't have sufficient permissions to view this debug message.")
         print(f"DEBUG: {st.user.email} is trying to access a debug message without sufficient permissions.")
 
-# Load main config
+
+# Load main config using Config class
 load_dotenv()
-config_path = os.getenv("CONFIG_PATH", "data/settings.yaml")
-data_path = os.getenv("CONFIG_DIR", "data")
-try:
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    if not isinstance(config, dict):
-        WARN("Config file is malformed or empty. Please check data/settings.yaml.")
-        config = {}
-except Exception as e:
-    WARN(f"Could not load config file: {e}. Please check data/settings.yaml.")
-    config = {}
+config = Config()
 
 def check_secrets_file():
     secrets_path = os.path.join(os.getenv("STREAMLIT_DIR", ".streamlit"), "secrets.toml")
@@ -89,66 +81,6 @@ def check_secrets_file():
 def initialize_environment():
     load_dotenv()
 
-class Config:
-    def __init__(self):
-        self.template_path = os.getenv("CONFIG_TEMPLATE", "templates/appconfig_template.yaml")
-        self.user_path = os.getenv("CONFIG_PATH", "data/appconfig.yaml")
-        self._config = None
-
-    def _lazy_load(self):
-        if self._config is None:
-            self._ensure_config()
-
-    def _load_yaml(self, path):
-        with open(path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-
-    def _save_yaml(self, path=None):
-        if path is None:
-            path = self.user_path
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(self._config, f)
-
-    def _merge(self, default: dict, user: dict) -> dict:
-        for k, v in default.items():
-            if k not in user:
-                user[k] = v
-            elif isinstance(v, dict) and isinstance(user[k], dict):
-                self._merge(v, user[k])
-        return user
-
-    def _ensure_config(self):
-        if not os.path.exists(self.user_path):
-            os.makedirs(os.path.dirname(self.user_path), exist_ok=True)
-            shutil.copy(self.template_path, self.user_path)
-
-        default = self._load_yaml(self.template_path)
-        user = self._load_yaml(self.user_path)
-        self._config = self._merge(default, user)
-        self._save_yaml()
-
-    def save(self):
-        self._lazy_load()
-        self._save_yaml()
-
-    def __getattr__(self, key):
-        self._lazy_load()
-        value = self._config.get(key)
-        if value is None:
-            raise AttributeError(f"Config has no attribute '{key}'")
-        return value
-
-    def __setattr__(self, key, value):
-        if key.startswith("_") or key in {"template_path", "user_path"}:
-            super().__setattr__(key, value)
-        else:
-            self._lazy_load()
-            self._config[key] = value
-            self._save_yaml()
-
-    def to_dict(self):
-        self._lazy_load()
-        return self._config.copy()
 
 class whoami:
     def __init__(self, email: str = None, devkey: str = None):
@@ -167,7 +99,9 @@ class whoami:
         st.session_state['role'] = self.role
         st.session_state['access'] = self.access
         self.DEVMODE = False  # Ensure DEVMODE attribute is always defined
-        try:devkey = st.query_params["devkey"]
+        try:
+            devkey = st.query_params["devkey"]
+            SYSLOG(f"Detected devkey in query params is {devkey}", flag="DEBUG")
         except Exception:pass
 
         try:df = pd.read_csv(os.path.join(os.getenv("DATA_DIR", "data"), "user.csv"), index_col="email")
@@ -178,8 +112,8 @@ class whoami:
             self.registered = False
             try:st.query_params.clear()
             except Exception:pass
-        dev_key_config = config.get("devkey")
-        if devkey and devkey == dev_key_config:
+        dev_key_config = getattr(config, "devkey", None)
+        if getattr(config, "enable_devkey", False) and devkey == dev_key_config:
             DEBUG(f"User {st.session_state.get()} used developer key.")
             self.name = getattr(st.user, "name", "Unknown") if hasattr(st, "user") else "Unknown"
             self.registered = False
@@ -216,7 +150,7 @@ class whoami:
             if "welcome_message" in df.columns and email in df.index:
                 raw_msg = df.loc[email, "welcome_message"].format(**formats)
             if pd.isna(raw_msg) or not raw_msg:
-                self.message = config.get("msg_default", "Welcome {name} ({access})!").format(**formats)
+                self.message = getattr(config, "msg_default", "Welcome {name} ({access})!").format(**formats)
             else:
                 self.message = raw_msg.format(**formats)
                 st.write("WARNING : DEVELOPER MODE ENABLED")
@@ -228,7 +162,7 @@ def sidebar(msg: str = None,user: str = None):
     Render the sidebar with user information and navigation options.
     """
     st.sidebar.title("User Information")
-    try:user = whoami(st.user.email)
+    try:user = whoami(email=st.user.email)
     except Exception as e:user = user # Fallback to provided user if st.user.email is not available but user is provided in the function call
     if user is None:
         st.sidebar.warning("User information is not available. Please log in.")
@@ -297,7 +231,7 @@ def mainload():
     check_secrets_file()
     prevent_st_user_not_logged_in()
     
-    st.set_page_config(page_title="FonDeDeNaJa", page_icon=":guardsman:", layout="wide")
+    st.set_page_config(page_title="FonDeDeNaJa", page_icon=":pencil:", layout="wide")
     
     # Load configuration
     config = Config()
