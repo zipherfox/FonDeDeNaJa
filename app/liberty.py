@@ -176,8 +176,6 @@ def sidebar(msg: str = None,user: str = None):
     st.sidebar.write(whoami())
     try:user = whoami(devkey=st.query_params('devkey'))
     except Exception as e:user = user # Fallback to provided user if st.user.email is not available but user is provided in the function call
-    except AttributeError:
-        pass  # If st.user is not available, we will use the provided user or None
 
     # Navigation selectbox logic moved here
     page_access = {
@@ -216,7 +214,7 @@ def prevent_st_user_not_logged_in():
     """
     Prevents the app from running if the user is not logged in.
     """
-    try:st.user.is_logged_in
+    try:st.user.email
     except AttributeError:
         if st.button("Login", type="primary"):st.login()
         st.stop()
