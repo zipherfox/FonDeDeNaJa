@@ -8,6 +8,7 @@ from pathlib import Path
 from colorama import Fore, Style, init as colorama_init
 import streamlit.components.v1 as components
 from appconfig import settings
+from dataclasses import dataclass, field
 colorama_init(autoreset=True)
 
 
@@ -81,107 +82,134 @@ def initialize_environment():
     load_dotenv()
 
 
+# Replace whoami class with cleaner dataclass-based implementation
+@dataclass
 class whoami:
-    def __init__(self, email: str = None, devkey: str = None):
-        if email is None:
-            devkey_val = None
-            try:
-                devkey_val = st.query_params.get('devkey')
-            except Exception:
-                pass
-            if settings.get("enable_devkey", False) and devkey_val == settings.get("dev_key", "L4D2"):
-                # Devkey mode: skip st.user entirely
-                email = "devkey@localhost"
-                self.DEVMODE = True
-                print("Devkey mode: using safe defaults for user info.")
-            else:
-                print("No email provided in whoami function. Attempting st.user.email")
-                SYSLOG("Dear developer : No email provided in whoami function. Attempting st.user.email", flag="WARN")
-                try:
-                    email = st.user.email
-                except Exception:
-                    SYSLOG("Fallback to st.user.email failed.\n> Double check your Streamlit authentication setup.\n> Double check your code to use user's email in whoami function.")
-        self.email = email
-        self.name = "Unknown"
-        self.role = "Guest"
-        self.access = "Guest"
-        self.message = "Could not determine user."
-        st.session_state['email'] = email  # Store email in session state
-        st.session_state['name'] = self.name
-        st.session_state['role'] = self.role
-        st.session_state['access'] = self.access
-        self.DEVMODE = False  # Ensure DEVMODE attribute is always defined
-        try:
-            devkey = st.query_params("devkey")
-            SYSLOG(f"Detected devkey in query params is {devkey}", flag="DEBUG")
-        except Exception:pass
+    """
+    User identity resolver.
 
-        try:df = pd.read_csv(os.path.join(os.getenv("DATA_DIR", "data"), "user.csv"), index_col="email")
+    Resolves email (including devkey mode), loads user data, applies access rules,
+    and builds a welcome message.
+
+    Attributes:
+        email (str): User's email address.
+        DEV_MODE (bool): True if running in devkey mode.
+        registered (bool): True if user is found in user.csv.
+        name (str): The display name of the user.
+        role (str): The assigned role.
+        num_access (int): Numeric access level.
+        access (str): String representation of access level.
+        message (str): Welcome or status message.
+    """
+    email: str = None
+    DEV_MODE: bool = False
+    registered: bool = False
+    name: str = "Unknown"
+    role: str = "Guest"
+    num_access: int = 0
+    access: str = "Guest"
+    message: str = field(default_factory=lambda: "Could not determine user.")
+
+    def __post_init__(self):
+        self.email = self._resolve_email(self.email)
+        df = self._load_user_df()
+        self._apply_access_rules(df)
+        formats = {
+            "name": self.name,
+            "access": self.access,
+            "email": self.email,
+            "role": self.role,
+            "num_access": self.num_access
+        }
+        self.message = self._build_message(df, formats)
+
+    def _resolve_email(self, email):
+        """Devkey logic, then fallback to st.user.email"""
+        devkey_val = None
+        try:
+            devkey_val = st.query_params.get('devkey')
+        except Exception:
+            pass
+        if settings.get("enable_devkey", False) and devkey_val == settings.get("dev_key", "L4D2"):
+            # Devkey mode: skip st.user entirely
+            email = "devkey@localhost"
+            self.DEV_MODE = True
+            print("Devkey mode: using safe defaults for user info.")
+        else:
+            print("No email provided in whoami function. Attempting st.user.email")
+            SYSLOG("Dear developer : No email provided in whoami function. Attempting st.user.email", flag="WARN")
+            try:
+                email = st.user.email
+            except Exception:
+                SYSLOG("Fallback to st.user.email failed.\n> Double check your Streamlit authentication setup.\n> Double check your code to use user's email in whoami function.")
+        return email
+
+    def _load_user_df(self):
+        """Load user.csv into DataFrame or alert/stop on missing file"""
+        try:
+            return pd.read_csv(os.path.join(os.getenv("DATA_DIR", "data"), "user.csv"), index_col="email")
         except FileNotFoundError:
             ALERT("User data file not found. Please ensure path to 'data/user.csv' exists.")
-            self.error = "User data file not found."
             st.stop()
+
+    def _apply_access_rules(self, df):
+        """Populate name, registered, role, num_access, access"""
+        if self.email is None or self.email not in df.index or pd.isna(df.loc[self.email, "name"]):
+            self.name = getattr(st.user, "name", "Unknown")
             self.registered = False
-            try:st.query_params.clear()
-            except Exception:pass
-        dev_key_config = settings.get("dev_key", "L4D2")
-        if settings.get("enable_devkey", False) and devkey == dev_key_config:
-            DEBUG(f"User {st.session_state.get()} used developer key.")
-            self.name = getattr(st.user, "name", "Unknown") if hasattr(st, "user") else "Unknown"
-            self.registered = False
-            self.role = "N/A"
-            self.access = "DEVKEY ACCESS"
-            self.message = "ONLY FOR DEVELOPMENT PURPOSES."
-            self.DEVMODE = True
         else:
-            if email is None or email not in df.index or pd.isna(df.loc[email, "name"]):
-                self.name = getattr(st.user, "name", "Unknown")
-                self.registered = False
-            else:
-                self.name = df.loc[email, "name"]
-                self.registered = True
+            self.name = df.loc[self.email, "name"]
+            self.registered = True
 
-            self.role = df.loc[email, "role"] if "role" in df.columns and email in df.index else "User"
-            if "access" in df.columns and email in df.index:
-                access_val = df.loc[email, "access"]
-            else:
-                access_val = None
-            self.num_access = 1 if pd.isna(access_val) else int(access_val)
+        self.role = df.loc[self.email, "role"] if "role" in df.columns and self.email in df.index else "User"
+        if "access" in df.columns and self.email in df.index:
+            access_val = df.loc[self.email, "access"]
+        else:
+            access_val = None
+        self.num_access = 1 if pd.isna(access_val) else int(access_val)
 
-            access_map = {
-                1: "Student",
-                2: "Teacher",
-                3: "Admin",
-                4: "Developer",
-                5: "Superadmin",
-                69: "DEVKEY ACCESS"
-            }
-            self.access = access_map.get(self.num_access, "User")
+        access_map = {
+            1: "Student",
+            2: "Teacher",
+            3: "Admin",
+            4: "Developer",
+            5: "Superadmin",
+            69: "DEVKEY ACCESS"
+        }
+        self.access = access_map.get(self.num_access, "User")
 
-            formats = {"name": self.name, "access": self.access, "email": self.email, "role": self.role, "num_access": self.num_access}
-            # Try user-specific welcome_message template, fallback to default on missing or formatting errors
-            # Load raw welcome template if available
-            raw_template = df.loc[email, "welcome_message"] if ("welcome_message" in df.columns and email in df.index) else None
-            # Only attempt formatting if template is a non-NaN, non-empty string
-            if isinstance(raw_template, str) and raw_template and not pd.isna(raw_template):
-                try:
-                    self.message = raw_template.format(**formats)
-                except (KeyError, ValueError, AttributeError):
-                    # Fallback on any formatting error
-                    self.message = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
-            else:
-                # Fallback when no user-specific template
-                self.message = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
+    def _build_message(self, df, formats):
+        """Format welcome_message or fallback to settings.msg_default"""
+        default = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
+        if "welcome_message" not in df.columns or self.email not in df.index:
+            return default
+        raw = df.loc[self.email, "welcome_message"]
+        if not isinstance(raw, str) or pd.isna(raw) or not raw:
+            return default
+        try:
+            return raw.format(**formats)
+        except Exception:
+            return default
+
     def __str__(self):
         return self.message
-def sidebar(msg: str = None,user: str = None):
+def sidebar(msg: str = None, user_obj: whoami = None):
     """
     Render the sidebar with user information and navigation options.
+
+    Args:
+        msg (str, optional): Additional message to display.
+        user_obj (whoami, optional): Pre-instantiated user object. Defaults to None.
     """
+    # Instantiate user if not provided
+    if user_obj is None:
+        try:
+            user_obj = whoami(devkey=st.query_params.get('devkey'))
+        except Exception:
+            user_obj = whoami()
     st.sidebar.title("User Information")
-    st.sidebar.write(whoami())
-    try:user = whoami(devkey=st.query_params('devkey'))
-    except Exception as e:user = user # Fallback to provided user if st.user.email is not available but user is provided in the function call
+    # Display the welcome message or user info
+    st.sidebar.write(str(user_obj))
 
     # Navigation selectbox logic moved here
     page_access = {
@@ -197,7 +225,7 @@ def sidebar(msg: str = None,user: str = None):
         "dev.py": "Developer",
     }
     nav_pages = []
-    access_level = getattr(user, "num_access", None)
+    access_level = getattr(user_obj, "num_access", None)
     if access_level is not None:
         try:
             user_access = int(access_level)
@@ -209,8 +237,7 @@ def sidebar(msg: str = None,user: str = None):
     else:nav_pages.append(("Home", "main.py"))
 
     if nav_pages:
-        selected_page = st.sidebar.selectbox("Navigate", [t for t, _ in nav_pages], key="sidebar_nav")
-        # Navigation logic should be handled externally using selected_page
+        _ = st.sidebar.selectbox("Navigate", [t for t, _ in nav_pages], key="sidebar_nav")
     else:
         st.sidebar.write("No pages available for your access level.")
     #In case addition messages need to be displayed
