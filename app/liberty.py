@@ -158,14 +158,20 @@ class whoami:
             }
             self.access = access_map.get(self.num_access, "User")
 
-            raw_msg = None
             formats = {"name": self.name, "access": self.access, "email": self.email, "role": self.role, "num_access": self.num_access}
-            if "welcome_message" in df.columns and email in df.index:
-                raw_msg = df.loc[email, "welcome_message"].format(**formats)
-            if pd.isna(raw_msg) or not raw_msg:
-                self.message = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
+            # Try user-specific welcome_message template, fallback to default on missing or formatting errors
+            # Load raw welcome template if available
+            raw_template = df.loc[email, "welcome_message"] if ("welcome_message" in df.columns and email in df.index) else None
+            # Only attempt formatting if template is a non-NaN, non-empty string
+            if isinstance(raw_template, str) and raw_template and not pd.isna(raw_template):
+                try:
+                    self.message = raw_template.format(**formats)
+                except (KeyError, ValueError, AttributeError):
+                    # Fallback on any formatting error
+                    self.message = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
             else:
-                self.message = raw_msg.format(**formats)
+                # Fallback when no user-specific template
+                self.message = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
     def __str__(self):
         return self.message
 def sidebar(msg: str = None,user: str = None):
@@ -254,4 +260,3 @@ def mainload():
     check_secrets_file()
     prevent_st_user_not_logged_in()
     sidebar()
-    
