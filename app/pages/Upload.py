@@ -1,6 +1,8 @@
 import streamlit as st
-from liberty import mainload
+from liberty import mainload, sidebar
+
 mainload()
+sidebar()
 st.title("Upload Page")
 st.write("Please upload your files here.")
 uploaded_file = st.file_uploader("Choose a file", type=["jpg", "png", "jpeg"])

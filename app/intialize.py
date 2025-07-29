@@ -3,8 +3,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 import sys
 from appconfig import settings
-from image import DrawImage
-image = DrawImage.from_url("https://content.imageresizer.com/images/memes/Side-eye-dog-meme-8.jpg",size=(80,40))
 
 def check_env_requirements():
     load_dotenv()

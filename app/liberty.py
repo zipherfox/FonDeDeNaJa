@@ -154,12 +154,14 @@ class whoami:
 
     def _apply_access_rules(self, df):
         """Populate name, registered, role, num_access, access"""
-        if self.email is None or self.email not in df.index or pd.isna(df.loc[self.email, "name"]):
-            self.name = getattr(st.user, "name", "Unknown")
-            self.registered = False
-        else:
+        # Determine CSV-based registration only
+        csv_registered = False
+        if self.email is not None and self.email in df.index and not pd.isna(df.loc[self.email, "name"]):
             self.name = df.loc[self.email, "name"]
-            self.registered = True
+            csv_registered = True
+        else:
+            self.name = getattr(st.user, "name", "Unknown")
+        self.registered = csv_registered
 
         self.role = df.loc[self.email, "role"] if "role" in df.columns and self.email in df.index else "User"
         if "access" in df.columns and self.email in df.index:
@@ -273,17 +275,30 @@ def accessible_pages():
     }
     accessible = {page: title for page, title in page_access.items() if user_access >= page_access[page]}
     return accessible
+def padding():
+    """
+    Adds padding to the main content area of the Streamlit app.
+    """
+    st.markdown("""
+            <style>
+                .block-container {
+                        padding-top: 2rem;
+                        padding-bottom: 0rem;
+                        padding-left: 5rem;
+                        padding-right: 5rem;
+                    }
+            </style>
+            """, unsafe_allow_html=True)
 def mainload():
     """
     Main function to load the application.
     Doesn't accept any parameters.
     """
-    import intialize
     from appconfig import settings
     from liberty import whoami, sidebar, prevent_st_user_not_logged_in, accessible_pages
     st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide")
     # Implement allowed permission page navigation in future
-    initialize_environment()
     check_secrets_file()
     prevent_st_user_not_logged_in()
-    sidebar()
+    padding() #padding() function to add padding to the main content area (For making Zipher sane)
+    # sidebar() removed to allow pages to control when/where sidebar renders

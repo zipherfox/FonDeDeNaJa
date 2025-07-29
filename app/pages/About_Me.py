@@ -1,5 +1,6 @@
 import streamlit as st
-from liberty import whoami, mainload
+from liberty import whoami, mainload, sidebar
+st.set_page_config(page_title="About Me", page_icon="ℹ️", layout="wide")
 mainload()
 st.title("User Information")
 user = whoami()
@@ -21,3 +22,4 @@ if st.button("Logout"):
     st.success("You have been logged out.")
     st.cache_resource.clear()
     st.experimental_rerun()
+sidebar()

@@ -5,6 +5,7 @@ import pandas as pd
 import pytesseract
 import platform
 import re
+from liberty import sidebar
 
 # === Set tesseract path for Windows ===
 if platform.system() == "Windows":
@@ -59,6 +60,7 @@ def grade_sheet(student_img, answer_key_img):
 
 # === Streamlit UI ===
 st.set_page_config(page_title="Bubble Sheet Grader", layout="wide")
+sidebar()
 st.title("📝 Bubble Sheet Grader")
 
 ANSWER_KEY_PATH = "20250529110230_014.jpg"
