@@ -248,7 +248,8 @@ def mainload():
     import intialize
     from appconfig import settings
     from liberty import whoami, sidebar, prevent_st_user_not_logged_in, accessible_pages
-    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide", menu_items=accessible_pages())
+    st.set_page_config(page_title="FonDeDeNaJa", page_icon="✏️", layout="wide")
+    # Implement allowed permission page navigation in future
     initialize_environment()
     check_secrets_file()
     prevent_st_user_not_logged_in()
