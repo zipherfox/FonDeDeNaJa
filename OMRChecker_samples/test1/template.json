@@ -19,6 +19,102 @@
       ],
       "labelsGap": 9,
       "bubblesGap": 7.6
+    },
+    "MCQ_Block_2": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        79
+      ],
+      "fieldLabels": [
+        "q6..10"
+      ],
+      "labelsGap": 9,
+      "bubblesGap": 7.6
+    },
+    "MCQ_Block_3": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        129
+      ],
+      "fieldLabels": [
+        "q11..15"
+      ],
+      "labelsGap": 9,
+      "bubblesGap": 7.6
+    },
+    "MCQ_Block_4": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        179
+      ],
+      "fieldLabels": [
+        "q16..20"
+      ],
+      "labelsGap": 9,
+      "bubblesGap": 7.6
+    },
+    "MCQ_Block_5": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        229
+      ],
+      "fieldLabels": [
+        "q21..25"
+      ],
+      "labelsGap": 9,
+      "bubblesGap": 7.6
+    },
+    "MCQ_Block_6": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        279
+      ],
+      "fieldLabels": [
+        "q26..30"
+      ],
+      "labelsGap": 9,
+      "bubblesGap": 7.6
+    },
+    "MCQ_Block_7": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        329
+      ],
+      "fieldLabels": [
+        "q31..35"
+      ],
+      "labelsGap": 8.7,
+      "bubblesGap": 7.6
+    },
+    "MCQ_Block_8": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        379
+      ],
+      "fieldLabels": [
+        "q36..40"
+      ],
+      "labelsGap": 9,
+      "bubblesGap": 7.6
+    },
+    "MCQ_Block_9": {
+      "fieldType": "QTYPE_TEST",
+      "origin": [
+        140,
+        429
+      ],
+      "fieldLabels": [
+        "q41..45"
+      ],
+      "labelsGap": 8.7,
+      "bubblesGap": 7.6
     }
   }
 }
