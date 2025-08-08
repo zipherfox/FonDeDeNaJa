@@ -16,7 +16,7 @@ This program is built for validating scores from image input or zip file.
 3. **name**: Your name
 4. **role**: Your role (e.g., Website Developer)
 5. **welcome_message** (optional): Custom welcome message
-    - If left empty, a default message will be used: `Welcome Back, {name}!`
+    - If left empty, a default message defined in 'data/settings.toml' will be used.
 
 **How to use:**
 
@@ -30,7 +30,7 @@ This program is built for validating scores from image input or zip file.
 3. The `welcome_message` can be customized for each developer.
 4. The CSV file will be read by the application to display developer information.
 
-## Configuration: `config.toml`
+## Configuration: `settings.toml`
 
 This file will be used for application-wide settings.
 
