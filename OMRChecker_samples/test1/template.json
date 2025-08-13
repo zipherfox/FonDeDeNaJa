@@ -15,7 +15,7 @@
         29
       ],
       "fieldLabels": [
-        "q1..5"
+        "q001..005"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -27,7 +27,7 @@
         79
       ],
       "fieldLabels": [
-        "q6..10"
+        "q006..010"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -39,7 +39,7 @@
         129
       ],
       "fieldLabels": [
-        "q11..15"
+        "q011..015"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -51,7 +51,7 @@
         179
       ],
       "fieldLabels": [
-        "q16..20"
+        "q016..020"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -63,7 +63,7 @@
         229
       ],
       "fieldLabels": [
-        "q21..25"
+        "q021..025"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -75,7 +75,7 @@
         279
       ],
       "fieldLabels": [
-        "q26..30"
+        "q026..030"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -87,7 +87,7 @@
         329
       ],
       "fieldLabels": [
-        "q31..35"
+        "q031..035"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -99,7 +99,7 @@
         379
       ],
       "fieldLabels": [
-        "q36..40"
+        "q036..040"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -111,7 +111,7 @@
         429
       ],
       "fieldLabels": [
-        "q41..45"
+        "q041..045"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -123,7 +123,7 @@
         29
       ],
       "fieldLabels": [
-        "q46..50"
+        "q046..050"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -135,7 +135,7 @@
         79
       ],
       "fieldLabels": [
-        "q51..55"
+        "q051..055"
       ],
       "labelsGap": 8,
       "bubblesGap": 7.6
@@ -147,7 +147,7 @@
         129
       ],
       "fieldLabels": [
-        "q56..60"
+        "q056..060"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -159,7 +159,7 @@
         179
       ],
       "fieldLabels": [
-        "q61..65"
+        "q061..065"
       ],
       "labelsGap": 8,
       "bubblesGap": 7.6
@@ -171,7 +171,7 @@
         229
       ],
       "fieldLabels": [
-        "q66..70"
+        "q066..070"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -183,7 +183,7 @@
         279
       ],
       "fieldLabels": [
-        "q71..75"
+        "q071..075"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -195,7 +195,7 @@
         329
       ],
       "fieldLabels": [
-        "q76..80"
+        "q076..080"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -207,7 +207,7 @@
         379
       ],
       "fieldLabels": [
-        "q81..85"
+        "q081..085"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
@@ -219,7 +219,7 @@
         429
       ],
       "fieldLabels": [
-        "q86..90"
+        "q086..090"
       ],
       "labelsGap": 8.7,
       "bubblesGap": 7.6
