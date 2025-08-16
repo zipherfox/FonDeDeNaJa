@@ -13,10 +13,6 @@ sidebar()
 st.title("Upload Page")
 st.write("Please upload your files here.")
 
-# Configure pytesseract (Windows only)
-if platform.system() == "Windows":
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
 def extract_info_and_answers(image_path, num_questions=30, output_dir="results"):
     # Load image
     img = cv2.imread(image_path)
