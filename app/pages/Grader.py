@@ -14,7 +14,7 @@ if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # ---- Load template (the image you provided) ----
-TEMPLATE_PATH = "/mnt/data/20250529110230_014.jpg"
+TEMPLATE_PATH = "data\20250529110230_014.jpg"
 template_img = Image.open(TEMPLATE_PATH).convert("RGB")
 T_W, T_H = template_img.size
 
