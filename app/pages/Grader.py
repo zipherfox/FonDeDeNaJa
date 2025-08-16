@@ -1,6 +1,6 @@
 # streamlit_grader_template.py
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 import numpy as np
 import pandas as pd
 import pytesseract
@@ -228,7 +228,21 @@ def scan_sheet_from_upload(upload_img_pil, num_questions_estimate=40):
     warped = warp_to_template(upload_img_pil, upload_markers, template_pts)
     # 3) perform OCR metadata on left panel
     left_panel = warped.crop((0, 0, int(T_W*0.35), T_H))
-    metadata_text = pytesseract.image_to_string(left_panel, config=r'--oem 3 --psm 6', lang="eng+tha")
+
+    # --- Preprocess left_panel for better Thai OCR ---
+    gray = left_panel.convert("L")
+    enhancer = ImageEnhance.Contrast(gray)
+    gray = enhancer.enhance(2.0)  # เพิ่ม contrast
+    # Binarization (threshold)
+    bw = gray.point(lambda x: 0 if x < 150 else 255, '1')
+
+    # OCR ภาษาไทย + อังกฤษ
+    metadata_text = pytesseract.image_to_string(
+        bw,
+        lang="eng+tha",
+        config="--oem 3 --psm 6"
+    )
+
     # parse info fields
     info = {
         "Name": "", "Subject": "", "Date": "", "Exam Room": "", "Subject Code": "", "Student ID": ""
@@ -248,6 +262,7 @@ def scan_sheet_from_upload(upload_img_pil, num_questions_estimate=40):
             info["Subject Code"] = line.split(":")[-1].strip()
         elif "รหัสประจำตัว" in line or "Student" in line:
             info["Student ID"] = line.split(":")[-1].strip()
+
 
     # 4) detect bubbles from the warped image using template grid centers (T_X_CENTERS, T_Y_CENTERS)
     warped_gray = warped.convert("L")
