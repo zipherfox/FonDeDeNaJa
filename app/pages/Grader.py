@@ -1,75 +1,77 @@
 import streamlit as st
-import cv2
+from PIL import Image
 import numpy as np
 import pandas as pd
 import pytesseract
 import platform
-import re
-#from liberty import sidebar
+import os
 
 # === Set tesseract path for Windows ===
 if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# === Helper function: OCR metadata (name/ID) ===
-def extract_metadata_text(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    roi = gray[0:200, 0:1000]  # Adjust ROI for your layout
+# === Function to extract metadata text from image ===
+def extract_metadata_text(img: Image.Image):
+    gray = img.convert("L")  # Grayscale
+    w, h = gray.size
+    roi = gray.crop((0, 0, int(w*0.35), h))  # Left 35% assumed for metadata
     custom_config = r'--oem 3 --psm 6'
-    text = pytesseract.image_to_string(roi, config=custom_config)
+    text = pytesseract.image_to_string(roi, config=custom_config, lang="eng+tha")
     return text
 
-def extract_name_and_id(text):
-    name_match = re.search(r"(?:Name|ชื่อ)\s*[:\-]?\s*(.+)", text, re.IGNORECASE)
-    id_match = re.search(r"(?:ID|รหัส)\s*[:\-]?\s*(\d+)", text, re.IGNORECASE)
-    name = name_match.group(1).strip() if name_match else "Unknown"
-    student_id = id_match.group(1).strip() if id_match else "Unknown"
-    return name, student_id
-
-# === Dummy bubble grading function ===
-def grade_sheet(student_img, answer_key_img):
-    # -- Your actual grading logic here --
-    # Simulate answers
-    answers = []
-    correct_count = 0
-    wrong_count = 0
-    missing_count = 0
-    multiple_count = 0
-
-    for i in range(1, 21):
-        selected = "A"  # Dummy selection
-        correct = "A"   # Dummy correct
-        result = "✔️" if selected == correct else "❌"
-        answers.append((i, selected, result))
-        if result == "✔️":
-            correct_count += 1
-        else:
-            wrong_count += 1
-
-    text = extract_metadata_text(student_img)
-    name, student_id = extract_name_and_id(text)
-
-    summary = {
-        "correct": correct_count,
-        "wrong": wrong_count,
-        "missing": missing_count,
-        "multiple": multiple_count,
+# === Extract info fields from OCR text ===
+def extract_info(metadata_text):
+    info = {
+        "Name": "",
+        "Subject": "",
+        "Date": "",
+        "Exam Room": "",
+        "Subject Code": "",
+        "Student ID": ""
     }
+    for line in metadata_text.splitlines():
+        if "ชื่อ" in line or "Name" in line:
+            info["Name"] = line.split(":")[-1].strip()
+        elif "วิชา" in line or "Subject" in line:
+            info["Subject"] = line.split(":")[-1].strip()
+        elif "วัน" in line or "Date" in line:
+            info["Date"] = line.split(":")[-1].strip()
+        elif "ห้องสอบ" in line or "Room" in line:
+            info["Exam Room"] = line.split(":")[-1].strip()
+        elif "รหัสวิชา" in line or "Subject code" in line:
+            info["Subject Code"] = line.split(":")[-1].strip()
+        elif "รหัสประจำตัว" in line or "Student" in line:
+            info["Student ID"] = line.split(":")[-1].strip()
+    return info
 
-    return answers, summary, name, student_id
+# === Extract mock answers ===
+def extract_answers(num_questions=30):
+    # Replace with real bubble detection later
+    return {q: np.random.randint(0, 10) for q in range(1, num_questions+1)}
+
+# === Save CSV ===
+def save_csv(info, answers, filename="upload", output_dir="results"):
+    os.makedirs(output_dir, exist_ok=True)
+    student_id = info["Student ID"] or "unknown"
+    subject_id = info["Subject Code"] or "subj"
+    csv_name = f"{student_id}_{subject_id}_{filename}.csv"
+    csv_path = os.path.join(output_dir, csv_name)
+
+    df = pd.DataFrame(list(answers.items()), columns=["Question", "Answer"])
+    for k, v in info.items():
+        df[k] = v
+    df.to_csv(csv_path, index=False, encoding="utf-8-sig")
+    return csv_path, df
 
 # === Streamlit UI ===
-st.set_page_config(page_title="Bubble Sheet Grader", layout="wide")
-#sidebar()
-st.title("📝 Bubble Sheet Grader")
+st.set_page_config(page_title="Bubble Sheet OCR + Grader", layout="wide")
+st.title("📝 Bubble Sheet OCR & Grader")
 
-ANSWER_KEY_PATH = "20250529110230_014.jpg"
-answer_key_img = cv2.imread(ANSWER_KEY_PATH)
-if answer_key_img is None:
-    st.error("❌ Could not load answer key image.")
-    st.stop()
-
-uploaded_files = st.file_uploader("📤 Upload scanned student sheet(s)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+uploaded_files = st.file_uploader(
+    "📤 Upload scanned student sheet(s)",
+    type=["jpg", "jpeg", "png"],
+    accept_multiple_files=True
+)
 
 if uploaded_files:
     all_results = []
@@ -78,33 +80,45 @@ if uploaded_files:
         st.divider()
         st.subheader(f"📄 File: `{uploaded_file.name}`")
 
-        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-        student_img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        try:
+            img = Image.open(uploaded_file).convert("RGB")
+        except Exception as e:
+            st.error(f"❌ Could not read `{uploaded_file.name}`: {e}")
+            continue
 
-        with st.spinner("🔍 Grading..."):
-            try:
-                report, summary, name, student_id = grade_sheet(student_img, answer_key_img)
-            except Exception as e:
-                st.error(f"❌ Error during grading `{uploaded_file.name}`: {e}")
-                continue
+        # Optional: resize large images
+        max_dim = 2000
+        if img.width > max_dim or img.height > max_dim:
+            img.thumbnail((max_dim, max_dim))
+            st.info(f"Image resized to fit within {max_dim}x{max_dim}")
 
-        st.markdown(f"**👤 Name:** `{name}`")
-        st.markdown(f"**🆔 Student ID:** `{student_id}`")
+        st.image(img, caption="Uploaded Image", use_column_width=True)
 
-        st.markdown("### 📊 Result Summary")
-        st.write(f"✅ Correct: {summary['correct']}")
-        st.write(f"❌ Wrong: {summary['wrong']}")
-        st.write(f"❓ Missing: {summary['missing']}")
-        st.write(f"⚠️ Multiple: {summary['multiple']}")
+        # Extract metadata
+        metadata_text = extract_metadata_text(img)
+        info = extract_info(metadata_text)
 
-        df = pd.DataFrame(report, columns=["Question", "Selected", "Result"])
-        st.dataframe(df, use_container_width=True)
+        # Extract answers
+        answers = extract_answers(num_questions=30)
 
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("⬇️ Download CSV Report", csv, f"{student_id}_result.csv", "text/csv")
+        # Save CSV
+        csv_path, df = save_csv(info, answers, filename=uploaded_file.name.split(".")[0])
+        st.success(f"✅ Processed successfully! CSV saved as `{csv_path}`")
 
-        df['Name'] = name
-        df['Student ID'] = student_id
+        st.markdown("**Extracted Info:**")
+        st.json(info)
+
+        st.markdown("**Answers (first 10 questions):**")
+        st.write(dict(list(answers.items())[:10]))
+
+        csv_bytes = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Download CSV",
+            csv_bytes,
+            f"{info['Student ID']}_result.csv",
+            "text/csv"
+        )
+
         all_results.append(df)
 
     if len(all_results) > 1:
