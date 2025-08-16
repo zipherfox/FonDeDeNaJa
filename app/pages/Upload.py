@@ -1,6 +1,6 @@
 import streamlit as st
 from liberty import mainload, sidebar
-import cv2
+from PIL import Image
 import pytesseract
 import pandas as pd
 import numpy as np
@@ -13,21 +13,27 @@ sidebar()
 st.title("Upload Page")
 st.write("Please upload your files here.")
 
+# Configure pytesseract (Windows only)
+if platform.system() == "Windows":
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 def extract_info_and_answers(image_path, num_questions=30, output_dir="results"):
-    # Load image
-    img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError(f"❌ Cannot read {image_path}")
+    # Load image with Pillow
+    try:
+        img = Image.open(image_path).convert("RGB")
+    except Exception as e:
+        raise ValueError(f"❌ Cannot open {image_path}: {e}")
 
     # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = img.convert("L")
+    gray_np = np.array(gray)
 
-    # OCR for metadata (left panel)
-    h, w = gray.shape
-    left_panel = gray[:, :int(w*0.35)]  # assume metadata in left 35% of sheet
+    # Assume metadata on left 35%
+    w, h = img.size
+    left_panel = gray.crop((0, 0, int(w * 0.35), h))
     metadata_text = pytesseract.image_to_string(left_panel, lang="eng+tha")
 
-    # Capture fields
+    # Capture common fields
     info = {
         "Name": "",
         "Subject": "",
@@ -50,8 +56,8 @@ def extract_info_and_answers(image_path, num_questions=30, output_dir="results")
         elif "รหัสประจำตัว" in line or "Student" in line:
             info["Student ID"] = line.split(":")[-1].strip()
 
-    # Extract answers (mocked here)
-    answers = {q: np.random.randint(0, 10) for q in range(1, num_questions+1)}
+    # Mock answers (replace with your bubble detection later)
+    answers = {q: np.random.randint(0, 10) for q in range(1, num_questions + 1)}
 
     # Save CSV
     os.makedirs(output_dir, exist_ok=True)
@@ -74,7 +80,7 @@ if uploaded_file is not None:
     st.write("Preview:")
     st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
 
-    # Save temporarily to disk for OpenCV
+    # Save temporarily to disk for Pillow
     temp_path = os.path.join("temp_upload", uploaded_file.name)
     os.makedirs("temp_upload", exist_ok=True)
     with open(temp_path, "wb") as f:
@@ -88,3 +94,4 @@ if uploaded_file is not None:
         st.write("**Answers (first 10 questions):**", dict(list(answers.items())[:10]))
     except Exception as e:
         st.error(f"❌ Error processing file: {e}")
+
