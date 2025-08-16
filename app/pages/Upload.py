@@ -7,6 +7,9 @@ import numpy as np
 import os
 import platform
 
+st.set_option('server.maxUploadSize', 200)
+
+
 # Initialize Streamlit layout
 mainload()
 sidebar()
