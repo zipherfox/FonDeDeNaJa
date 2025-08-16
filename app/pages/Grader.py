@@ -100,7 +100,7 @@ def save_results_csv(info, answers, filename_prefix="out", output_dir="results")
 st.set_page_config(page_title="Grader", layout="wide")
 st.title("Grader")
 
-st.markdown("Upload scanned student sheets. Metadata is OCR'd (Thai+Eng). Bubbles are detected based on generated grid.")
+st.markdown("Upload scanned student sheets.")
 
 num_questions_estimate = st.number_input("Max questions to detect", min_value=10, max_value=200, value=NUM_QUESTIONS)
 uploaded = st.file_uploader("Upload scanned sheet", type=["jpg","jpeg","png"], accept_multiple_files=True)
