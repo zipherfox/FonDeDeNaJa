@@ -6,20 +6,20 @@ import pytesseract
 import platform
 import os
 
-# === Set tesseract path for Windows ===
+# === Tesseract path for Windows ===
 if platform.system() == "Windows":
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-# === Function to extract metadata text from image ===
+# === OCR metadata extraction ===
 def extract_metadata_text(img: Image.Image):
-    gray = img.convert("L")  # Grayscale
+    gray = img.convert("L")
     w, h = gray.size
-    roi = gray.crop((0, 0, int(w*0.35), h))  # Left 35% assumed for metadata
+    roi = gray.crop((0, 0, int(w*0.35), h))  # Left 35% for metadata
     custom_config = r'--oem 3 --psm 6'
     text = pytesseract.image_to_string(roi, config=custom_config, lang="eng+tha")
     return text
 
-# === Extract info fields from OCR text ===
+# === Parse OCR text into info fields ===
 def extract_info(metadata_text):
     info = {
         "Name": "",
@@ -44,9 +44,8 @@ def extract_info(metadata_text):
             info["Student ID"] = line.split(":")[-1].strip()
     return info
 
-# === Extract mock answers ===
+# === Generate mock answers (replace with real bubble detection) ===
 def extract_answers(num_questions=30):
-    # Replace with real bubble detection later
     return {q: np.random.randint(0, 10) for q in range(1, num_questions+1)}
 
 # === Save CSV ===
@@ -64,12 +63,12 @@ def save_csv(info, answers, filename="upload", output_dir="results"):
     return csv_path, df
 
 # === Streamlit UI ===
-st.set_page_config(page_title="Bubble Sheet OCR + Grader", layout="wide")
+st.set_page_config(page_title="Bubble Sheet OCR & Grader", layout="wide")
 st.title("📝 Bubble Sheet OCR & Grader")
 
 uploaded_files = st.file_uploader(
     "📤 Upload scanned student sheet(s)",
-    type=["jpg", "jpeg", "png"],
+    type=["jpg","jpeg","png"],
     accept_multiple_files=True
 )
 
@@ -86,7 +85,7 @@ if uploaded_files:
             st.error(f"❌ Could not read `{uploaded_file.name}`: {e}")
             continue
 
-        # Optional: resize large images
+        # Automatically resize large images to prevent 413
         max_dim = 2000
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail((max_dim, max_dim))
