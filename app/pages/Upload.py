@@ -7,9 +7,6 @@ import numpy as np
 import os
 import platform
 
-st.set_option('server.maxUploadSize', 200)
-
-
 # Initialize Streamlit layout
 mainload()
 sidebar()
@@ -20,16 +17,9 @@ st.write("Please upload your files here.")
 if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-def extract_info_and_answers(image_path, num_questions=30, output_dir="results"):
-    # Load image with Pillow
-    try:
-        img = Image.open(image_path).convert("RGB")
-    except Exception as e:
-        raise ValueError(f"❌ Cannot open {image_path}: {e}")
-
+def extract_info_and_answers(img: Image.Image, num_questions=30, output_dir="results", filename="upload"):
     # Convert to grayscale
     gray = img.convert("L")
-    gray_np = np.array(gray)
 
     # Assume metadata on left 35%
     w, h = img.size
@@ -59,14 +49,14 @@ def extract_info_and_answers(image_path, num_questions=30, output_dir="results")
         elif "รหัสประจำตัว" in line or "Student" in line:
             info["Student ID"] = line.split(":")[-1].strip()
 
-    # Mock answers (replace with your bubble detection later)
+    # Mock answers (replace with real detection logic)
     answers = {q: np.random.randint(0, 10) for q in range(1, num_questions + 1)}
 
     # Save CSV
     os.makedirs(output_dir, exist_ok=True)
     student_id = info["Student ID"] or "unknown"
     subject_id = info["Subject Code"] or "subj"
-    csv_name = f"{student_id}_{subject_id}.csv"
+    csv_name = f"{student_id}_{subject_id}_{filename}.csv"
     csv_path = os.path.join(output_dir, csv_name)
 
     df = pd.DataFrame(list(answers.items()), columns=["Question", "Answer"])
@@ -79,22 +69,25 @@ def extract_info_and_answers(image_path, num_questions=30, output_dir="results")
 # Streamlit file uploader
 uploaded_file = st.file_uploader("Choose a file", type=["jpg", "png", "jpeg"])
 if uploaded_file is not None:
+    # Open image with Pillow
+    img = Image.open(uploaded_file).convert("RGB")
+
+    # Resize large images to max 2000x2000 to prevent errors
+    max_dim = 2000
+    if img.width > max_dim or img.height > max_dim:
+        img.thumbnail((max_dim, max_dim))
+        st.info(f"Image resized to fit within {max_dim}x{max_dim}")
+
     # Preview image
-    st.write("Preview:")
-    st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+    st.image(img, caption="Uploaded Image", use_column_width=True)
 
-    # Save temporarily to disk for Pillow
-    temp_path = os.path.join("temp_upload", uploaded_file.name)
-    os.makedirs("temp_upload", exist_ok=True)
-    with open(temp_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-
-    # Run extraction
+    # Extract info and save CSV
     try:
-        info, answers, csv_path = extract_info_and_answers(temp_path)
-        st.success(f"File uploaded and processed successfully! CSV saved as `{csv_path}`")
+        info, answers, csv_path = extract_info_and_answers(img, filename=uploaded_file.name.split(".")[0])
+        st.success(f"File processed successfully! CSV saved as `{csv_path}`")
         st.write("**Extracted Info:**", info)
         st.write("**Answers (first 10 questions):**", dict(list(answers.items())[:10]))
     except Exception as e:
         st.error(f"❌ Error processing file: {e}")
+
 
