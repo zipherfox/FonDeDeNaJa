@@ -13,8 +13,9 @@ if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 # ---- Tesseract path for Linux ----
 if platform.system() == "Linux":
-    pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"
+    pytesseract.pytesseract.tesseract_cmd = r"/usr/local/bin/tesseract"
 # Zipherfox : This is purely guess work if it still doesn't work then I'm fucked
+# Zipherfox : yes I am fucked. trying another path then
 
 # ---- Template simulation (no real image needed) ----
 T_W, T_H = 2480, 3508  # A4 at 300dpi
