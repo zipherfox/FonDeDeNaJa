@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# deploy-app
+# Uses current working directory as project directory; builds and brings up docker compose services
+# Adds an optional interactive prune step using scripts/prune_images.sh (keeps newest images)
+
+set -euo pipefail
+
+PROJECT_DIR="$(pwd)"
+COMPOSE_CMD="docker compose"
+LOG_FILE="/var/log/deploy-app.log"
+DATE_NOW() { date '+%Y-%m-%d %H:%M:%S'; }
+
+log() {
+  echo "[$(DATE_NOW)] $1" | tee -a "$LOG_FILE"
+}
+
+main() {
+  log "Using project directory: $PROJECT_DIR"
+
+  if [[ ! -f "$PROJECT_DIR/docker-compose.yml" ]]; then
+    log "❌ docker-compose.yml not found in $PROJECT_DIR"
+    exit 1
+  fi
+
+  if [[ ! -f "$PROJECT_DIR/Dockerfile" ]]; then
+    log "❌ Dockerfile not found in $PROJECT_DIR"
+    exit 1
+  fi
+
+  log "📦 Pulling and rebuilding Docker images (if necessary)..."
+  # allow pull to fail gracefully
+  $COMPOSE_CMD pull || true
+  $COMPOSE_CMD build
+
+  log "📡 Bringing up the application..."
+  $COMPOSE_CMD up -d
+
+  log "✅ Deployment completed successfully"
+
+  # Prune step: only when scripts/prune_images.sh exists
+  PRUNE_SCRIPT="$PROJECT_DIR/scripts/prune_images.sh"
+  if [[ -f "$PRUNE_SCRIPT" ]]; then
+    # detect interactive TTY
+    if [ -t 0 ]; then
+      read -p "Would you like to prune old Docker images for ghcr.io/zipherfox/FonDeDeNaJa? [Y/N]: " prune_ans || prune_ans=N
+      if [[ "$prune_ans" =~ ^[Yy] ]]; then
+        read -p "How many newest images should be kept? [2]: " keep_ans || keep_ans=2
+        if [ -z "$keep_ans" ]; then
+          keep_ans=2
+        fi
+        read -p "Perform actual deletion now? (default: dry-run) [y/N]: " perform_ans || perform_ans=N
+        if [[ "$perform_ans" =~ ^[Yy] ]]; then
+          log "Running prune (will delete older images)..."
+          bash "$PRUNE_SCRIPT" --keep "$keep_ans" --no-dry-run || log "Prune script exited with errors or some images could not be removed"
+        else
+          log "Running prune in dry-run mode (no images will be deleted)..."
+          bash "$PRUNE_SCRIPT" --keep "$keep_ans" || log "Prune script (dry-run) exited with errors"
+        fi
+      else
+        log "Skipping image prune as requested by user"
+      fi
+    else
+      log "Non-interactive session; skipping prune step"
+    fi
+  else
+    log "Prune script not found at $PRUNE_SCRIPT; skipping prune step"
+  fi
+}
+
+main "$@"

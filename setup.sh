@@ -259,7 +259,34 @@ if [ -z "$DOCKER_OR_DEPLOYED" ]; then
     FALLBACK_FAILED=true
   fi
   if [ "$FALLBACK_FAILED" = true ]; then
-    echo -e "\n${YELLOW}[INFO] If this is your service account, You can add make a script that use docker compose up -d with sudo permissions and edit your sudoers file to allow running it without a password. This script will try deploy-app for you.${NC}"
+    echo -e "\n${YELLOW}[INFO] If this is your service account, You can add make a script that use docker compose up -d with sudo permissions and edit your sudoers file to allow running it without a password. This script will try deploy-app for you. For more information on how to setup your deploy-app visit README.md.${NC}"
+  fi
+fi
+
+# Offer to prune old images on the host (interactive)
+if [ "$SKIP_INTERACTIVE" = false ] && [ "$CAN_DOCKER" = true ]; then
+  PRUNE_SCRIPT="./scripts/prune_images.sh"
+  if [ -f "$PRUNE_SCRIPT" ]; then
+    echo
+    read -p "Would you like to prune old Docker images for ghcr.io/zipherfox/FonDeDeNaJa? [Y/N]: " prune_ans
+    if [[ "$prune_ans" =~ ^[Yy] ]]; then
+      read -p "How many newest images should be kept? [2]: " keep_ans
+      if [ -z "$keep_ans" ]; then
+        keep_ans=2
+      fi
+      read -p "Perform actual deletion now? (default: dry-run) [y/N]: " perform_ans
+      if [[ "$perform_ans" =~ ^[Yy] ]]; then
+        echo -e "\nRunning prune (will delete older images)..."
+        bash "$PRUNE_SCRIPT" --keep "$keep_ans" --no-dry-run || echo -e "${YELLOW}Prune script exited with errors or some images could not be removed.${NC}"
+      else
+        echo -e "\nRunning prune in dry-run mode (no images will be deleted)..."
+        bash "$PRUNE_SCRIPT" --keep "$keep_ans"
+      fi
+    else
+      echo "Skipping image prune."
+    fi
+  else
+    echo -e "${YELLOW}Prune script not found at $PRUNE_SCRIPT; skipping prune step.${NC}"
   fi
 fi
 
