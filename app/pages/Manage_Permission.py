@@ -2,7 +2,6 @@ import streamlit as st
 from liberty import WARN, mainload, whoami, sidebar
 import pandas as pd
 import os
-mainload()
 st.title("Manage Permissions")
 @st.fragment
 def editable_user_table(csv_path=os.path.join(os.getenv("DATA_DIR", "data"), "user.csv")):
