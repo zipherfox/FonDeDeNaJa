@@ -1,7 +1,6 @@
 import streamlit as st
 from liberty import whoami, mainload, sidebar
 st.set_page_config(page_title="About Me", page_icon="ℹ️", layout="wide")
-mainload()
 st.title("User Information")
 user = whoami()
 if st.user.is_logged_in:st.image(st.user["picture"])
