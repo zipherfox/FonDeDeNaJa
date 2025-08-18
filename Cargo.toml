@@ -1,0 +1,23 @@
+[package]
+name = "fon-de-de-na-ja"
+version = "0.1.0"
+edition = "2021"
+description = "🚀 Memory Safe 🚀 OMR Checker written in Rust"
+authors = ["Zipherfox", "NessShadow", "Film"]
+license = "MIT"
+
+[lib]
+name = "fon_de_de_na_ja"
+path = "rust-src/lib.rs"
+
+[[bin]]
+name = "fon-de-de-na-ja"
+path = "rust-src/main.rs"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[build-dependencies]

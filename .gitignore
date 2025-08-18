@@ -5,3 +5,8 @@ __pycache__/
 app/.streamlit/secrets.toml
 app/data/*
 results/unknown_subj_20250529110230_004.csv
+
+# Rust
+target/
+Cargo.lock
+fon-de-de-na-ja-rust
