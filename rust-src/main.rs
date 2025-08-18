@@ -1,19 +1,21 @@
+use anyhow::Result;
 use clap::{Arg, Command};
 use fon_de_de_na_ja::OmrConfig;
+use std::path::PathBuf;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 🚀 Memory Safe 🚀 Rust implementation of FonDeDeNaJa
+fn main() -> Result<()> {
+    // 🚀 Blazingly Fast Memory Safe 🚀 Rust implementation of FonDeDeNaJa
 
     let matches = Command::new("fon-de-de-na-ja")
         .version("0.1.0")
         .author("Zipherfox, NessShadow, Film")
-        .about("🚀 Memory Safe 🚀 OMR Checker - Rust Edition")
+        .about("🚀 Blazingly Fast Memory Safe OMR Checker - Complete Rust Edition 🚀")
         .arg(
             Arg::new("input_paths")
                 .short('i')
                 .long("inputDir")
                 .value_name("INPUT_DIR")
-                .help("Specify an input directory")
+                .help("Specify input directories or files")
                 .action(clap::ArgAction::Append)
                 .default_values(["inputs"]),
         )
@@ -22,21 +24,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .short('o')
                 .long("outputDir")
                 .value_name("OUTPUT_DIR")
-                .help("Specify an output directory")
+                .help("Specify output directory")
                 .default_value("outputs"),
+        )
+        .arg(
+            Arg::new("template")
+                .short('t')
+                .long("template")
+                .value_name("TEMPLATE_FILE")
+                .help("Specify template JSON file"),
         )
         .arg(
             Arg::new("debug")
                 .short('d')
                 .long("debug")
-                .help("Enables debugging mode for showing detailed errors")
+                .help("Enable debugging mode for detailed output")
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("auto_align")
                 .short('a')
                 .long("autoAlign")
-                .help("(experimental) Enables automatic template alignment")
+                .help("Enable automatic template alignment")
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
@@ -48,25 +57,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .get_matches();
 
-    println!("🚀 Starting Memory Safe OMR Processing... 🚀");
-
-    // Check if Python backend is available
-    if !OmrConfig::check_backend() {
-        eprintln!("❌ Python backend (OMRChecker_main.py) not found in current directory");
-        std::process::exit(1);
-    }
+    println!("🚀 Starting Blazingly Fast Memory Safe OMR Processing... 🚀");
 
     // Build configuration
     let mut config = OmrConfig::default();
 
     // Set input paths
     if let Some(inputs) = matches.get_many::<String>("input_paths") {
-        config.input_paths = inputs.map(|s| s.to_string()).collect();
+        config.input_paths = inputs.map(|s| PathBuf::from(s)).collect();
     }
 
     // Set output directory
     if let Some(output) = matches.get_one::<String>("output_dir") {
-        config.output_dir = output.clone();
+        config.output_dir = PathBuf::from(output);
+    }
+
+    // Set template path
+    if let Some(template) = matches.get_one::<String>("template") {
+        config.template_path = Some(PathBuf::from(template));
     }
 
     // Set flags
@@ -74,16 +82,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     config.auto_align = matches.get_flag("auto_align");
     config.set_layout = matches.get_flag("set_layout");
 
-    println!("🚀 Executing OMR processing with Memory Safe Rust wrapper... 🚀");
+    // Display configuration if debug mode
+    if config.debug {
+        println!("🚀 Configuration:");
+        println!("  Input paths: {:?}", config.input_paths);
+        println!("  Output directory: {:?}", config.output_dir);
+        println!("  Template: {:?}", config.template_path);
+        println!("  Auto-align: {}", config.auto_align);
+        println!("  Debug mode: {}", config.debug);
+    }
+
+    println!("🚀 Executing blazingly fast OMR processing with complete Rust implementation... 🚀");
 
     // Execute the OMR processing
-    let result = config.execute();
+    let result = config.execute()?;
 
     println!("{}", result.message);
+    
+    if config.debug {
+        println!("🚀 Processing statistics:");
+        println!("  Files processed: {}", result.processed_files.len());
+        println!("  Total time: {:.2} seconds", result.total_processing_time);
+        
+        if !result.errors.is_empty() {
+            println!("  Errors encountered:");
+            for error in &result.errors {
+                println!("    - {}", error);
+            }
+        }
+        
+        // Show per-file statistics
+        for file in &result.processed_files {
+            println!("  📄 {}: {} bubbles detected, confidence: {:.2}%, time: {:.3}s", 
+                    file.file_path.display(),
+                    file.detected_bubbles.len(),
+                    file.confidence_score * 100.0,
+                    file.processing_time);
+        }
+    }
 
     if result.success {
+        println!("🚀 All processing completed successfully with blazing speed and memory safety! 🚀");
         Ok(())
     } else {
-        std::process::exit(result.exit_code);
+        eprintln!("❌ OMR processing encountered errors");
+        std::process::exit(1);
     }
 }
