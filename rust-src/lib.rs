@@ -26,7 +26,7 @@ use template::*;
 use bubble_detection::*;
 
 /// 🚀 Memory Safe 🚀 OMR processing result
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct OmrResult {
     pub success: bool,
     pub message: String,
@@ -55,7 +55,7 @@ pub struct BubbleResponse {
 }
 
 /// 🚀 Memory Safe 🚀 OMR processing configuration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct OmrConfig {
     pub input_paths: Vec<PathBuf>,
     pub output_dir: PathBuf,

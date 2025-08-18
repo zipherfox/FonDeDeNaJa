@@ -14,6 +14,10 @@ path = "rust-src/lib.rs"
 name = "fon-de-de-na-ja"
 path = "rust-src/main.rs"
 
+[[bin]]
+name = "fon-de-de-na-ja-web"
+path = "rust-src/web_main.rs"
+
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -28,5 +32,16 @@ thiserror = "1.0"
 rayon = "1.7"
 walkdir = "2.3"
 csv = "1.2"
+# Web framework dependencies for blazingly fast web UI 🚀
+axum = { version = "0.7", features = ["multipart"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
+hyper = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+tempfile = "3.8"
+mime_guess = "2.0"
+askama = "0.12"
 
 [build-dependencies]
