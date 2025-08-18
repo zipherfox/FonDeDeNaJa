@@ -1,4 +1,4 @@
-# streamlit_grader_no_template.py
+# streamlit_grader_cropped_numeric.py
 import streamlit as st
 from PIL import Image, ImageEnhance
 import numpy as np
@@ -8,39 +8,29 @@ import platform
 import os
 import math
 
-# ---- Tesseract path for Windows ----
+# ---- Tesseract path ----
 if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-# ---- Tesseract path for Linux ----
 if platform.system() == "Linux":
     pytesseract.pytesseract.tesseract_cmd = r"/usr/bin/tesseract"
-# Zipherfox : This is purely guess work if it still doesn't work then I'm fucked
-# Zipherfox : yes I am fucked. trying another path then
 
-# ---- Template simulation (no real image needed) ----
+# ---- Bubble grid ----
 T_W, T_H = 2480, 3508  # A4 at 300dpi
-META_WIDTH = int(T_W*0.35)
-
-# Bubble grid parameters
 NUM_QUESTIONS = 60
-CHOICES_PER_Q = 5
-COLUMNS = 5  # number of horizontal question blocks
+COLUMNS = 5
 ROWS = math.ceil(NUM_QUESTIONS / COLUMNS)
 
-# Generate x_centers and y_centers
-x_centers = np.linspace(META_WIDTH+50, T_W-50, CHOICES_PER_Q*COLUMNS)
+x_centers = np.linspace(800, T_W-50, COLUMNS)  # adjust per template
 y_centers = np.linspace(200, T_H-50, ROWS)
 
-CHOICES = ["A","B","C","D","E"]
+# ---- OCR crop function ----
+def extract_text(image, box):
+    x, y, w, h = box
+    cropped = image.crop((x, y, x + w, y + h))
+    text = pytesseract.image_to_string(cropped, lang="tha+eng")
+    return text.strip()
 
-# ---- Utility functions ----
-def preprocess_ocr(img):
-    gray = img.convert("L")
-    enhancer = ImageEnhance.Contrast(gray)
-    gray = enhancer.enhance(2.0)
-    bw = gray.point(lambda x: 0 if x<150 else 255, '1')
-    return bw
-
+# ---- Bubble detection for numeric answers ----
 def sample_darkness_at(img_gray_np, cx, cy, radius=10):
     h,w = img_gray_np.shape
     x0 = max(0, int(cx-radius))
@@ -53,41 +43,22 @@ def sample_darkness_at(img_gray_np, cx, cy, radius=10):
     if mask.sum() == 0: return 1.0
     return patch[mask].mean()/255.0
 
-def scan_sheet(upload_img, num_questions=NUM_QUESTIONS):
-    # --- split metadata panel ---
-    meta_panel = upload_img.crop((0,0,META_WIDTH,T_H))
-    meta_panel = preprocess_ocr(meta_panel)
-    meta_text = pytesseract.image_to_string(meta_panel, lang="eng+tha", config="--oem 3 --psm 6")
-
-    # parse metadata
-    info = {"Name": "", "Subject": "", "Date": "", "Exam Room": "", "Subject Code": "", "Student ID": ""}
-    for line in meta_text.splitlines():
-        line = line.strip()
-        if not line: continue
-        if "ชื่อ" in line or "Name" in line: info["Name"] = line.split(":")[-1].strip()
-        elif "วิชา" in line or "Subject" in line: info["Subject"] = line.split(":")[-1].strip()
-        elif "วัน" in line or "Date" in line: info["Date"] = line.split(":")[-1].strip()
-        elif "ห้องสอบ" in line or "Room" in line: info["Exam Room"] = line.split(":")[-1].strip()
-        elif "รหัสวิชา" in line or "Subject code" in line: info["Subject Code"] = line.split(":")[-1].strip()
-        elif "รหัสประจำตัว" in line or "Student" in line: info["Student ID"] = line.split(":")[-1].strip()
-
-    # --- detect bubbles ---
+def scan_bubbles_numeric(upload_img, num_questions=NUM_QUESTIONS):
     warped_gray = np.array(upload_img.convert("L"))
     answers = {}
     qnum = 1
     for y in y_centers:
-        for i in range(0, len(x_centers), CHOICES_PER_Q):
-            col_block = x_centers[i:i+CHOICES_PER_Q]
-            darknesses = [1-sample_darkness_at(warped_gray, x, y, radius=10) for x in col_block]
-            sel_idx = int(np.argmax(darknesses))
-            if darknesses[sel_idx] < 0.15: selected = None
-            else: selected = CHOICES[sel_idx]
-            answers[qnum] = selected
+        for x in x_centers:
+            darkness = 1 - sample_darkness_at(warped_gray, x, y, radius=10)
+            if darkness < 0.15:
+                val = None
+            else:
+                val = int(round(darkness * 9))  # map darkness to 0–9
+            answers[qnum] = val
             qnum += 1
             if qnum > num_questions: break
         if qnum > num_questions: break
-
-    return {"metadata_text": meta_text, "info": info, "answers": answers, "warped_image": upload_img}
+    return answers
 
 # ---- CSV saver ----
 def save_results_csv(info, answers, filename_prefix="out", output_dir="results"):
@@ -101,17 +72,32 @@ def save_results_csv(info, answers, filename_prefix="out", output_dir="results")
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")
     return csv_path, df
 
-# ---- Streamlit UI ----
-st.set_page_config(page_title="Grader", layout="wide")
-st.title("Grader")
+# ---- Build answer table ----
+def build_answer_table(answers):
+    data = []
+    for q, ans in answers.items():
+        data.append({"Q": q, "Answer": ans})
+    return pd.DataFrame(data)
 
-st.markdown("Upload scanned student sheets.")
+# ---- Streamlit UI ----
+st.set_page_config(page_title="Grader OCR Numeric", layout="wide")
+st.title("📄 Grader OCR - Numeric Answers")
 
 num_questions_estimate = st.number_input("Max questions to detect", min_value=10, max_value=200, value=NUM_QUESTIONS)
 uploaded = st.file_uploader("Upload scanned sheet", type=["jpg","jpeg","png"], accept_multiple_files=True)
 
+# --- Metadata boxes (adjust per template) ---
+BOXES = {
+    "Name": (100, 400, 430, 80),
+    "Subject": (100, 447, 450, 80),
+    "Date": (100, 520, 540, 80),
+    "Exam Room": (100, 555, 560, 80),
+    "Subject Code": (100, 600, 650, 80),
+    "Student ID": (100, 700, 300, 80),
+}
+
 if uploaded:
-    all_dfs=[]
+    all_tables=[]
     for up in uploaded:
         st.subheader(up.name)
         try: upload_img = Image.open(up).convert("RGB")
@@ -119,27 +105,37 @@ if uploaded:
             st.error(f"Cannot open {up.name}: {e}")
             continue
 
-        with st.spinner("Scanning sheet..."):
-            result = scan_sheet(upload_img, num_questions=int(num_questions_estimate))
+        st.image(upload_img, caption="Uploaded sheet", use_column_width=True)
 
-        st.image(result["warped_image"], caption="Original/processed sheet", use_column_width=True)
-        st.markdown("**Extracted Metadata (OCR):**")
-        st.code(result["metadata_text"][:800] + ("..." if len(result["metadata_text"])>800 else ""))
-        st.markdown("**Parsed Info:**")
-        st.json(result["info"])
-        st.markdown("**Detected Answers:**")
-        st.write(result["answers"])
+        # --- OCR metadata ---
+        info={}
+        st.markdown("**📌 Metadata from cropped boxes:**")
+        for field, box in BOXES.items():
+            text = extract_text(upload_img, box)
+            info[field] = text
+            st.write(f"**{field}:** {text}")
+        st.json(info)
 
-        csv_path, df = save_results_csv(result["info"], result["answers"], filename_prefix=up.name.split(".")[0])
-        st.success(f"Saved CSV: `{csv_path}`")
-        csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
-        st.download_button("Download CSV", csv_bytes, f"{up.name.split('.')[0]}_results.csv", "text/csv")
-        all_dfs.append(df)
+        # --- Scan numeric answers ---
+        with st.spinner("Scanning bubble answers..."):
+            answers = scan_bubbles_numeric(upload_img, num_questions=int(num_questions_estimate))
+        st.markdown("**Detected Numeric Answers:**")
+        st.write(answers)
 
-    if len(all_dfs)>1:
-        combined = pd.concat(all_dfs, ignore_index=True)
+        # --- Answer table ---
+        df_table = build_answer_table(answers)
+        st.markdown("**Answer Table:**")
+        st.dataframe(df_table, use_container_width=True)
+
+        # --- Save CSV ---
+        csv_path, df = save_results_csv(info, answers, filename_prefix=up.name.split(".")[0])
+        csv_bytes = df_table.to_csv(index=False).encode("utf-8-sig")
+        st.download_button("Download Answer Table CSV", csv_bytes, f"{up.name.split('.')[0]}_answers.csv", "text/csv")
+        all_tables.append(df_table)
+
+    # --- Combined table if multiple files ---
+    if len(all_tables)>1:
+        combined = pd.concat(all_tables, ignore_index=True)
         csv_all = combined.to_csv(index=False).encode("utf-8-sig")
-        st.download_button("Download combined CSV", csv_all, "all_results.csv", "text/csv")
-
-
+        st.download_button("Download combined answer table CSV", csv_all, "all_answers.csv", "text/csv")
 
