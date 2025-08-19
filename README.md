@@ -6,17 +6,31 @@ This program is built for validating scores from image input or zip file.
 
 FonDeDeNaJa now features a **complete native Rust implementation** with both CLI and web interfaces for maximum performance and memory safety!
 
+## 🐳 Quick Start with Docker (Recommended)
+
+Get started instantly with our blazingly fast Docker deployment:
+
+```bash
+# One-command setup and start
+./deploy.sh setup
+
+# Or use Docker Compose directly
+docker-compose -f docker-compose.rust.yml up -d
+
+# Access the web interface at http://localhost:3000
+```
+
+**Docker Benefits:**
+- 🚀 **Instant Deployment** - One command to get running
+- 🐳 **Production Ready** - Multi-stage builds with health checks  
+- 🔒 **Secure** - Runs as non-root user with proper isolation
+- 📦 **Self-contained** - No external dependencies required
+
+> See [README_DOCKER.md](README_DOCKER.md) for comprehensive Docker deployment guide
+
 ### 🌐 Web Interface
 
 Experience the blazingly fast OMR processing through our modern web interface:
-
-```bash
-# Start the web server
-cargo build --release
-./target/release/fon-de-de-na-ja-web
-
-# Open your browser to http://localhost:3000
-```
 
 ![Web Interface](omr_web_interface.png)
 
@@ -26,15 +40,25 @@ cargo build --release
 - 📊 **Results Dashboard** - Comprehensive processing statistics  
 - 🔧 **Configuration Options** - Auto-alignment and debug modes
 
+**Local Development:**
+```bash
+# Start the web server
+cargo build --release
+./target/release/fon-de-de-na-ja-web
+
+# Open your browser to http://localhost:3000
+```
+
 > See [README_WEB.md](README_WEB.md) for detailed web interface documentation
 
 ### 🖥️ Command Line Interface
 
 ```bash
-# Build the complete Rust edition
-cargo build --release
+# Use with Docker (recommended)
+docker run --rm -v $(pwd)/inputs:/app/uploads -v $(pwd)/outputs:/app/outputs fondedenaja-rust
 
-# Use the blazingly fast CLI
+# Or build locally
+cargo build --release
 ./target/release/fon-de-de-na-ja -i inputs -o outputs --autoAlign --debug
 ```
 
@@ -45,6 +69,45 @@ cargo build --release
 - 📦 **Self-contained** - Single binary with no external dependencies
 
 > See [README_RUST.md](README_RUST.md) for detailed CLI documentation
+
+## 🚀 Production Deployment
+
+### GitHub Actions Automated Deployment
+
+This repository includes automated deployment via GitHub Actions. On every push to `main`, the system will:
+
+1. **🚀 Build** the blazingly fast Rust application  
+2. **🐳 Deploy** using Docker with health checks
+3. **✅ Verify** deployment status and service health
+
+**Deployment Features:**
+- **Zero-downtime updates** with Docker health checks
+- **Automatic rollback** on deployment failures  
+- **Service monitoring** with health endpoint validation
+- **Resource optimization** with proper container limits
+
+**Manual Deployment Commands:**
+```bash
+# Using the deployment script (recommended)
+./deploy.sh update
+
+# Using Docker Compose directly
+docker-compose -f docker-compose.rust.yml down
+docker-compose -f docker-compose.rust.yml up -d --build
+
+# Check deployment status
+curl http://localhost:3000/api/health
+```
+
+### Server Requirements
+
+For production deployment, ensure your server has:
+- **Docker** and **Docker Compose** installed
+- **2GB RAM** minimum (4GB recommended)  
+- **SSD storage** for optimal image processing performance
+- **Port 3000** available for the web interface
+
+> See [README_DOCKER.md](README_DOCKER.md) for complete production deployment guide
 
 ---
 

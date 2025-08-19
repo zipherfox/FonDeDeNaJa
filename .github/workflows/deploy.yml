@@ -1,4 +1,4 @@
-name: Remote Deploy via SSH
+name: 🚀 Deploy Blazingly Fast Rust OMR with Docker 🚀
 
 on:
   push:
@@ -20,11 +20,11 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Trigger Remote Deploy Script
+      - name: 🚀 Deploy Blazingly Fast Rust OMR Application
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             set -e
-            echo "[GitHub Action] 🚀 Starting deployment on server at \$(date)"
+            echo "[GitHub Action] 🚀 Starting blazingly fast Rust OMR deployment at \$(date)"
 
             cd /home/gha_deploy/FonDeDeNaJa
 
@@ -33,8 +33,41 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
-            echo "🧱 Running deployment script..."
-            sudo deploy-app
+            echo "🚀 Building and deploying Rust OMR with Docker..."
+            
+            # Check if deploy.sh exists and is executable
+            if [[ -x "./deploy.sh" ]]; then
+                echo "🚀 Using blazingly fast deployment script..."
+                ./deploy.sh update
+            else
+                echo "🐳 Using Docker Compose for deployment..."
+                # Stop existing containers
+                docker-compose -f docker-compose.rust.yml down || true
+                
+                # Pull latest images and rebuild
+                docker-compose -f docker-compose.rust.yml pull || true
+                docker-compose -f docker-compose.rust.yml build --no-cache
+                
+                # Start services
+                docker-compose -f docker-compose.rust.yml up -d
+                
+                # Wait for health check
+                echo "⏳ Waiting for service to be healthy..."
+                for i in {1..30}; do
+                    if curl -f http://localhost:3000/api/health &>/dev/null; then
+                        echo "🚀 Service is healthy!"
+                        break
+                    fi
+                    echo "Waiting... ($i/30)"
+                    sleep 10
+                done
+            fi
 
-            echo "✅ Deployment completed at \$(date)"
+            echo "📊 Checking deployment status..."
+            docker-compose -f docker-compose.rust.yml ps
+            
+            echo "🎯 Testing health endpoint..."
+            curl -f http://localhost:3000/api/health || echo "⚠️ Health check failed"
+
+            echo "✅ 🚀 Blazingly fast deployment completed at \$(date) 🚀"
           EOF

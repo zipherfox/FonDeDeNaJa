@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# deploy-app
+# deploy-app - 🚀 Blazingly Fast Deployment for FonDeDeNaJa Rust OMR 🚀
 # Uses current working directory as project directory; builds and brings up docker compose services
-# Adds an optional interactive prune step using scripts/prune_images.sh (keeps newest images)
+# Prioritizes Rust OMR deployment with fallback to legacy Python deployment
 
 set -euo pipefail
 
@@ -11,31 +11,60 @@ LOG_FILE="/var/log/deploy-app.log"
 DATE_NOW() { date '+%Y-%m-%d %H:%M:%S'; }
 
 log() {
-  echo "[$(DATE_NOW)] $1" | tee -a "$LOG_FILE"
+  echo "[$(DATE_NOW)] 🚀 $1" | tee -a "$LOG_FILE"
 }
 
 main() {
-  log "Using project directory: $PROJECT_DIR"
+  log "Deploying blazingly fast Rust OMR in: $PROJECT_DIR"
 
-  if [[ ! -f "$PROJECT_DIR/docker-compose.yml" ]]; then
-    log "❌ docker-compose.yml not found in $PROJECT_DIR"
+  # Check for Rust Docker configuration (preferred)
+  if [[ -f "$PROJECT_DIR/docker-compose.rust.yml" ]]; then
+    log "🚀 Found Rust OMR configuration - deploying blazingly fast version!"
+    COMPOSE_FILE="docker-compose.rust.yml"
+    
+    # Check for Rust Dockerfile
+    if [[ ! -f "$PROJECT_DIR/Dockerfile.rust" ]]; then
+      log "❌ Dockerfile.rust not found - required for Rust deployment"
+      exit 1
+    fi
+    
+  # Fallback to legacy Python configuration
+  elif [[ -f "$PROJECT_DIR/docker-compose.yml" ]]; then
+    log "⚠️  Using legacy Python configuration (consider upgrading to Rust!)"
+    COMPOSE_FILE="docker-compose.yml"
+    
+    if [[ ! -f "$PROJECT_DIR/Dockerfile" ]]; then
+      log "❌ Dockerfile not found in $PROJECT_DIR"
+      exit 1
+    fi
+    
+  else
+    log "❌ No docker-compose configuration found in $PROJECT_DIR"
     exit 1
   fi
 
-  if [[ ! -f "$PROJECT_DIR/Dockerfile" ]]; then
-    log "❌ Dockerfile not found in $PROJECT_DIR"
-    exit 1
-  fi
-
-  log "📦 Pulling and rebuilding Docker images (if necessary)..."
+  log "📦 Pulling and rebuilding Docker images for $COMPOSE_FILE..."
   # allow pull to fail gracefully
-  $COMPOSE_CMD pull || true
-  $COMPOSE_CMD build
+  $COMPOSE_CMD -f "$COMPOSE_FILE" pull || true
+  $COMPOSE_CMD -f "$COMPOSE_FILE" build --no-cache
 
-  log "📡 Bringing up the application..."
-  $COMPOSE_CMD up -d
+  log "📡 Bringing up the blazingly fast application..."
+  $COMPOSE_CMD -f "$COMPOSE_FILE" up -d
 
-  log "✅ Deployment completed successfully"
+  # Health check for Rust deployment
+  if [[ "$COMPOSE_FILE" == "docker-compose.rust.yml" ]]; then
+    log "⏳ Waiting for Rust OMR service to be healthy..."
+    for i in {1..30}; do
+      if curl -f http://localhost:3000/api/health &>/dev/null; then
+        log "🚀 Blazingly fast Rust OMR service is healthy!"
+        break
+      fi
+      log "Waiting for health check... ($i/30)"
+      sleep 10
+    done
+  fi
+
+  log "✅ 🚀 Blazingly fast deployment completed successfully! 🚀"
 
   # Prune step: only when scripts/prune_images.sh exists
   PRUNE_SCRIPT="$PROJECT_DIR/scripts/prune_images.sh"
