@@ -1,0 +1,90 @@
+# Git and version control
+.git
+.github
+.gitignore
+
+# Build artifacts
+target/
+.cargo/
+
+# Python/Streamlit artifacts (not needed for Rust build)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test and temporary files
+test_outputs/
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Sample data and images (may be large)
+OMRChecker_samples/
+data/
+img/
+inputs/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.gif
+
+# Documentation and README files (not needed for runtime)
+docs/
+*.md
+
+# Configuration files that shouldn't be in container
+.env
+.env.*
+docker-compose.yml
+Dockerfile
+Dockerfile.*
+
+# Legacy Python files (not needed for Rust build)
+*.py
+requirements.txt
+packages.txt
+setup.py
+app/
+templates/

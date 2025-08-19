@@ -1,0 +1,58 @@
+# 🚀 Multi-stage Docker build for blazingly fast Rust OMR application 🚀
+
+# Build stage
+FROM rust:1.80-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy all source files
+COPY Cargo.toml Cargo.lock ./
+COPY rust-src/ rust-src/
+
+# Build the application with blazing speed 🚀
+RUN cargo build --release
+
+# Runtime stage - minimal image for blazing fast deployment 🚀
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user for security
+RUN groupadd --gid 1000 app && \
+    useradd --uid 1000 --gid 1000 --create-home app
+
+# Set working directory
+WORKDIR /app
+
+# Copy binaries from build stage
+COPY --from=builder /app/target/release/fon-de-de-na-ja /usr/local/bin/fon-de-de-na-ja
+COPY --from=builder /app/target/release/fon-de-de-na-ja-web /usr/local/bin/fon-de-de-na-ja-web
+
+# Create directories for uploads and outputs
+RUN mkdir -p /app/uploads /app/outputs && \
+    chown -R app:app /app
+
+# Switch to non-root user
+USER app
+
+# Expose port for web interface
+EXPOSE 3000
+
+# Set environment variables
+ENV RUST_LOG=info
+ENV BIND_ADDRESS=0.0.0.0:3000
+
+# Default command runs the blazingly fast web interface 🚀
+CMD ["fon-de-de-na-ja-web"]

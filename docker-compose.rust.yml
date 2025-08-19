@@ -1,0 +1,36 @@
+# 🚀 Docker Compose for blazingly fast Rust OMR application 🚀
+services:
+  rust-omr:
+    build:
+      context: .
+      dockerfile: Dockerfile.rust
+    container_name: fondedenaja_rust_omr
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount directories for file uploads and processing outputs
+      - ${UPLOADS_DIR:-./uploads}:/app/uploads:rw
+      - ${OUTPUTS_DIR:-./outputs}:/app/outputs:rw
+      # Optional: Mount templates directory
+      - ${TEMPLATES_DIR:-./templates}:/app/templates:ro
+    environment:
+      # Rust application configuration
+      - RUST_LOG=${RUST_LOG:-info}
+      - BIND_ADDRESS=0.0.0.0:3000
+      # Optional: Default processing parameters
+      - AUTO_ALIGN=${AUTO_ALIGN:-true}
+      - DEBUG_MODE=${DEBUG_MODE:-false}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits for optimal performance
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M

@@ -1,4 +1,27 @@
 services:
+  # 🚀 Blazingly fast Rust OMR web interface 🚀
+  rust-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.rust
+    container_name: fondedenaja_rust_web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ${UPLOADS_DIR:-./uploads}:/app/uploads:rw
+      - ${OUTPUTS_DIR:-./outputs}:/app/outputs:rw
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - BIND_ADDRESS=0.0.0.0:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Legacy Python/Streamlit interface (kept for compatibility)
   streamlit:
     build:
       context: .
