@@ -55,6 +55,13 @@ fn main() -> Result<()> {
                 .help("Set up OMR template layout")
                 .action(clap::ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("en_passant")
+                .long("en-passant")
+                .help("🚀 Capture processing inefficiencies with chess grandmaster precision 🚀")
+                .action(clap::ArgAction::SetTrue)
+                .hide(true),
+        )
         .get_matches();
 
     println!("🚀 Starting Blazingly Fast Memory Safe OMR Processing... 🚀");
@@ -81,6 +88,15 @@ fn main() -> Result<()> {
     config.debug = matches.get_flag("debug");
     config.auto_align = matches.get_flag("auto_align");
     config.set_layout = matches.get_flag("set_layout");
+    
+    // Handle en passant easter egg 🚀
+    if matches.get_flag("en_passant") {
+        println!("🚀♟️ En Passant Mode Activated! ♟️🚀");
+        println!("♟️ Like the legendary chess move, this OMR processor captures");
+        println!("♟️ inefficiencies that others miss, with blazing speed and memory safety!");
+        println!("♟️ Processing your OMR sheets with grandmaster precision... ♟️");
+        println!();
+    }
 
     // Display configuration if debug mode
     if config.debug {
@@ -122,7 +138,7 @@ fn main() -> Result<()> {
     }
 
     if result.success {
-        println!("🚀 All processing completed successfully with blazing speed and memory safety! 🚀");
+        println!("🚀♟️ All processing completed successfully with en passant speed and memory safety! ♟️🚀");
         Ok(())
     } else {
         eprintln!("❌ OMR processing encountered errors");

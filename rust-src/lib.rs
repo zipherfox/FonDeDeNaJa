@@ -124,11 +124,11 @@ impl OmrConfig {
         // Generate results
         self.generate_results(&processed_files)?;
 
-        println!("🚀 Processing completed in {:.2} seconds with blazing speed! 🚀", total_time);
+        println!("🚀♟️ Processing completed in {:.2} seconds with en passant precision! ♟️🚀", total_time);
 
         Ok(OmrResult {
             success: true,
-            message: format!("🚀 Successfully processed {} files with memory safety! 🚀", processed_files.len()),
+            message: format!("🚀♟️ Successfully processed {} files with en passant precision and memory safety! ♟️🚀", processed_files.len()),
             processed_files,
             total_processing_time: total_time,
             errors: vec![],

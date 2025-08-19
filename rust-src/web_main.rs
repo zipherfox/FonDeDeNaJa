@@ -131,11 +131,12 @@ async fn main() -> Result<()> {
 // Serve the main web interface
 async fn serve_index() -> impl IntoResponse {
     let html_content = r#"<!DOCTYPE html>
+<!-- 🚀♟️ En Passant: Capturing processing inefficiencies with chess grandmaster precision ♟️🚀 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 FonDeDeNaJa - Blazingly Fast OMR Processing 🚀</title>
+    <title>🚀♟️ FonDeDeNaJa - Blazingly Fast OMR Processing with En Passant Precision ♟️🚀</title>
     <style>
         * {
             margin: 0;
@@ -303,8 +304,8 @@ async fn serve_index() -> impl IntoResponse {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 FonDeDeNaJa OMR Processor 🚀</h1>
-            <p>Blazingly Fast Memory Safe Optical Mark Recognition with Rust</p>
+            <h1>🚀♟️ FonDeDeNaJa OMR Processor ♟️🚀</h1>
+            <p>Blazingly Fast Memory Safe Optical Mark Recognition with En Passant Precision</p>
         </div>
         
         <div class="upload-section">
@@ -495,7 +496,7 @@ async fn serve_index() -> impl IntoResponse {
                     spinner.style.display = 'block';
                     break;
                 case 'Completed':
-                    updateStatus('✅ Processing completed successfully!', statusClass);
+                    updateStatus('✅♟️ Processing completed with en passant precision! ♟️', statusClass);
                     spinner.style.display = 'none';
                     displayResults(jobResult.result);
                     break;
