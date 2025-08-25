@@ -1,32 +1,25 @@
 import pandas as pd
 
-checked = []
+global checked, result, weight
+checked=0
+result=()
+weight = (1, 2)
 
 def compare_csv(first_file: str, second_file: str):
-    df_first = pd.read_csv(first_file, header=0, on_bad_lines="skip", )
-    df_second = pd.read_csv(second_file, header=0, on_bad_lines="skip")
-    correct = 1
-    wrong = 0
-
-    while True:
-        # Access all lines where first contains same with second csv
-        if df_first[df_first.apply(tuple, 1).isin(df_second.apply(tuple,1))]:
-            checked.append(correct)
+    student = pd.read_csv(first_file, header=0, on_bad_lines="skip", )
+    key = pd.read_csv(second_file, header=0, on_bad_lines="skip")
     
-        # Use Tilde to access all lines where first doesn't contain second csv
-        if df_first[~df_first.apply(tuple, 1).isin(df_second.apply(tuple,1))]:
-            checked.append(wrong)
-        
-        if df_second.empty:
-
+    # Access all lines where first contains same with second csv
+    result = student.apply(tuple, 1).isin(key.apply(tuple,1))
+    result.replace({False: 0, True: 1}, inplace=True)
+    for i in range(0,len(result)):
+        checked+=result[i]
+    result.append(checked)
 
 if __name__ == '__main__':
-    compare_csv("first.csv", "second.csv")
+    compare_csv("student.csv", "key.csv")
 
-questionScore = {'score': 1}
-questionScore['score'] = checked
-
-df = pd.DataFrame(questionScore)
+df = pd.DataFrame(result)
 
 csv_file_path = 'checkedresults.csv'
 
