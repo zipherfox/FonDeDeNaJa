@@ -9,5 +9,4 @@ terminal-img
 opencv-python-headless
 numpy
 pytesseract
-Pillow
-dynaconf
+pydantic

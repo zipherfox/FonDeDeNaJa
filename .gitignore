@@ -4,4 +4,4 @@ __pycache__/
 *.py[codz]
 app/.streamlit/secrets.toml
 app/data/*
-results/unknown_subj_20250529110230_004.csv
+/log/*

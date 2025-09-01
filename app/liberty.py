@@ -1,22 +1,41 @@
+"""Core application utilities for FonDeDeNaJa.
+
+This module provides:
+    * User identity resolution (`whoami`).
+    * Sidebar / access helpers.
+    * Simple system logging helpers (ALERT, WARN, SYSLOG, DEBUG).
+    * Secrets / environment initialization utilities.
+    * File-system indexing & organization utilities (`build_index`, `organize`).
+
+Docstrings are written to optimize Pylance / IntelliSense hints.
+"""
 import streamlit as st
 import pandas as pd
-import toml
-import os
-import shutil
+import toml, os, traceback
+import shutil  # To manage files to respected folder
+from pathlib import Path  # To build index
 from dotenv import load_dotenv
-from pathlib import Path
-from colorama import Fore, Style, init as colorama_init
+from colorama import Back, Style, init as colorama_init  # For system logging purpose
 import streamlit.components.v1 as components
 from appconfig import settings
 from dataclasses import dataclass, field
+from typing import Optional, Dict, List, Any, Iterable, Mapping, Literal, Tuple
+from logsetup import get_logger, inc_user_warning, inc_user_error
 colorama_init(autoreset=True)
 
+# Load main config using Config class
+load_dotenv()
+os.environ["ENV_LOADED"] = "TRUE" # Apparently .env is too dumb. It can't tell that TRUE/FALSE is boolean. 
 
+def _browser_console_log(msg: str, level: str = "log") -> None:
+    """Emit a message to the browser developer console.
 
-def _browser_console_log(msg, level="log"):
-    """
-    Log a message to the browser's console using JavaScript via components.
-    Level can be 'log', 'warn', or 'error'.
+    Parameters
+    ----------
+    msg : str
+        The message to render.
+    level : str, default 'log'
+        One of 'log', 'warn', or 'error'.
     """
     js = f"""
     <script>
@@ -24,53 +43,128 @@ def _browser_console_log(msg, level="log"):
     </script>
     """
     components.html(js, height=0)
-def ALERT(msg: str,log: str=None):
+def ALERT(msg: str, log: Optional[str] = None) -> None:
+    """Display a critical error to the user and log it. FOR USER LEVEL
+
+    Parameters
+    ----------
+    msg : str
+        User-facing error message.
+    log : str | None
+        Alternate log text (if different from user-facing message).
+    """
     st.error(msg, icon="🚨")
     _browser_console_log(log if log else msg, level="error")
-    if log is None:
-        print(f"{Fore.RED}[ALERT]{Style.RESET_ALL} {msg}")
-    else:
-        print(f"{Fore.RED}[ALERT]{Style.RESET_ALL} {log}")
+    logger = get_logger()
+    out = log if log else msg
+    print(f"{Back.RED}[ALERT]{Style.RESET_ALL} {out}")
+    logger.error(out)
+    inc_user_error()
 
 
-def WARN(msg: str, log: str = None):
+def WARN(msg: str, log: Optional[str] = None) -> None:
+    """
+    Display a non-fatal warning and log it. FOR USER LEVEL
+
+    Parameters
+    ----------
+    msg : str
+        User-facing warning message.
+    log : str | None
+        Alternate log text (if different from user-facing message).
+    """
     st.warning(msg, icon="⚠️")
     _browser_console_log(log if log else msg, level="warn")
-    if log is None:
-        print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} {msg}")
-    else:
-        print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} {log}")
+    logger = get_logger()
+    out = log if log else msg
+    print(f"{Back.YELLOW}[WARNING]{Style.RESET_ALL} {out}")
+    logger.warning(out)
+    inc_user_warning()
 
-def SYSLOG(log: str, flag: str = "LOG" ):
-    """
-    Log a message to the console. And show in browser console if possible.
-    This is used for system-level logs that may not require user attention.
-    Flag can be edited to indicate the type of log (e.g., "LOG", "ALERT", "WARNING").
-    """
-    if flag.capitalize() == "ALERT":
-        print(f"{Fore.RED}[ALERT/System]{Style.RESET_ALL} {log}")
-        _browser_console_log(log, level="error")
-    elif flag.capitalize() == "WARNING" or flag.capitalize() == "WARN":
-        print(f"{Fore.YELLOW}[WARNING/System]{Style.RESET_ALL} {log}")
-        _browser_console_log(log, level="warn")
-    else:
-        print(f"{Fore.GREEN}[LOG/System]{Style.RESET_ALL} {log}")
-        _browser_console_log(log, level="log")
+def DEBUG(msg: str, DEV_MODE: bool = False, METHOD: Optional[str] = None) -> None:
+    """Conditionally show a debug message.
 
-def DEBUG(msg: str, DEV_MODE: bool = False, METHOD: str = None):
+    Parameters
+    ----------
+    msg : str
+        The debug information to surface.
+    DEV_MODE : bool, default False
+        If True, message is displayed; otherwise a permission toast appears.
+    METHOD : str | None
+        Optional hint of the originating method / context.
+    """
+    logger = get_logger()
     if DEV_MODE:
         st.info(msg, icon="ℹ️")
         print(f"DEBUG: {msg}")
+        logger.debug(msg if METHOD is None else f"{METHOD}: {msg}")
     else:
+        denied = f"{getattr(st.user, 'email', 'UNKNOWN_USER')} attempted to view debug output without permission."
         st.toast("You don't have sufficient permissions to view this debug message.")
-        print(f"DEBUG: {st.user.email} is trying to access a debug message without sufficient permissions.")
+        print(f"DEBUG: {denied}")
+        logger.info(denied)
 
+class SYSLOG:
+    """
+    An internal SYSTEM LOG that logs on system level with highlight color for better visibility
+    Example:
+    SYSLOG(f"User {st.user.email} logged in.",LOG)
+    """
+    def __init__(self,msg:str, flag: Literal["INFO", "WARNING", "ERROR"] = "INFO") -> None:
+        self.msg = msg
+        self.flag = flag
+        if flag == "INFO":self.INFO(self.msg)
+        elif flag == "WARNING":self.WARN(self.msg)
+        elif flag == "ERROR":self.ERROR(self.msg)
+    @staticmethod
+    def INFO(msg:str) -> None:
+        """Log an informational message."""
+        print(f"{Back.GREEN}[SYSTEM/INFO]{Style.RESET_ALL} {msg}")
+    @staticmethod
+    def WARN(msg:str) -> None:
+        """Log a warning message."""
+        print(f"{Back.YELLOW}[SYSTEM/WARNING]{Style.RESET_ALL} {msg}")
+    @staticmethod
+    def ERROR(msg:str) -> None:
+        """Log an error message."""
+        print(f"{Back.RED}[SYSTEM/ERROR]{Style.RESET_ALL} {msg}")
+        raise Exception("Critical Error flagged by developer")
+"""Attach file logging to SYSLOG static methods without altering class definition."""
+_app_logger = get_logger()
+_orig_INFO = SYSLOG.INFO
+_orig_WARN = SYSLOG.WARN
+_orig_ERROR = SYSLOG.ERROR
 
-# Load main config using Config class
-load_dotenv()
-def check_secrets_file():
-    secrets_path = os.path.join(os.getenv("STREAMLIT_DIR", ".streamlit"), "secrets.toml")
-    if not os.path.isfile(secrets_path):
+def _info_proxy(msg: str):
+    try:
+        _orig_INFO(msg)
+    finally:
+        _app_logger.info(msg)
+
+def _warn_proxy(msg: str):
+    try:
+        _orig_WARN(msg)
+    finally:
+        _app_logger.warning(msg)
+    inc_user_warning()
+
+def _error_proxy(msg: str):
+    # Log first, then invoke original which raises
+    _app_logger.error(msg)
+    inc_user_error()
+    _orig_ERROR(msg)
+
+SYSLOG.INFO = staticmethod(_info_proxy)
+SYSLOG.WARN = staticmethod(_warn_proxy)
+SYSLOG.ERROR = staticmethod(_error_proxy)
+
+def check_secrets_file() -> None:
+    """Validate presence & structure of Streamlit `secrets.toml`.
+
+    Warns in UI & console if file or required sections are missing.
+    """
+    secrets_path = Path(os.getenv("STREAMLIT_DIR", ".streamlit")) / "secrets.toml"
+    if not secrets_path.is_file():
         return WARN("secrets.toml file not found. Please create one in the .streamlit directory.")
     try:
         secrets_data = toml.load(secrets_path)
@@ -78,7 +172,8 @@ def check_secrets_file():
             return WARN("auth section not found in secrets.toml. Please add it.")
     except Exception as e:
         return WARN(f"Could not read secrets.toml: {e}")
-def initialize_environment():
+def initialize_environment() -> None:
+    """(Re)load environment variables from `.env` into process scope."""
     load_dotenv()
 
 
@@ -101,7 +196,7 @@ class whoami:
         access (str): String representation of access level.
         message (str): Welcome or status message.
     """
-    email: str = None
+    email: Optional[str] = None
     DEV_MODE: bool = False
     registered: bool = False
     name: str = "Unknown"
@@ -110,7 +205,8 @@ class whoami:
     access: str = "Guest"
     message: str = field(default_factory=lambda: "Could not determine user.")
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        """Finalize initialization: resolve email, load CSV, build message."""
         self.email = self._resolve_email(self.email)
         df = self._load_user_df()
         self._apply_access_rules(df)
@@ -122,38 +218,42 @@ class whoami:
             "num_access": self.num_access
         }
         self.message = self._build_message(df, formats)
+    def _resolve_email(self, email: Optional[str]) -> Optional[str]:
+        """Resolve the active user email.
 
-    def _resolve_email(self, email):
-        """Devkey logic, then fallback to st.user.email"""
+        Order of precedence:
+            1. Devkey override (if enabled & matches key)
+            2. Streamlit authenticated user (`st.user.email`)
+        Returns a fallback `None` if neither available.
+        """
         devkey_val = None
         try:
             devkey_val = st.query_params.get('devkey')
         except Exception:
             pass
-        if settings.get("enable_devkey", False) and devkey_val == settings.get("dev_key", "L4D2"):
-            # Devkey mode: skip st.user entirely
+        if settings.get("enable_devkey", False) and devkey_val == settings.get("dev_key"):
             email = "devkey@localhost"
             self.DEV_MODE = True
             print("Devkey mode: using safe defaults for user info.")
         else:
             print("No email provided in whoami function. Attempting st.user.email")
-            SYSLOG("Dear developer : No email provided in whoami function. Attempting st.user.email", flag="WARN")
+            SYSLOG.WARN("Dear developer : No email provided in whoami function. Attempting st.user.email")
             try:
                 email = st.user.email
             except Exception:
-                SYSLOG("Fallback to st.user.email failed.\n> Double check your Streamlit authentication setup.\n> Double check your code to use user's email in whoami function.")
+                SYSLOG.WARN("Fallback to st.user.email failed.\n> Double check your Streamlit authentication setup.\n> Double check your code to use user's email in whoami function.")
         return email
 
-    def _load_user_df(self):
+    def _load_user_df(self) -> pd.DataFrame:
         """Load user.csv into DataFrame or alert/stop on missing file"""
         try:
             return pd.read_csv(os.path.join(os.getenv("DATA_DIR", "data"), "user.csv"), index_col="email")
         except FileNotFoundError:
-            ALERT("User data file not found. Please ensure path to 'data/user.csv' exists.")
+            SYSLOG.WARN("User data file not found. Please ensure path to 'data/user.csv' exists.")
             st.stop()
 
-    def _apply_access_rules(self, df):
-        """Populate name, registered, role, num_access, access"""
+    def _apply_access_rules(self, df: pd.DataFrame) -> None:
+        """Populate role, access tier, registration flags from user DataFrame."""
         # Determine CSV-based registration only
         csv_registered = False
         if self.email is not None and self.email in df.index and not pd.isna(df.loc[self.email, "name"]):
@@ -180,7 +280,8 @@ class whoami:
         }
         self.access = access_map.get(self.num_access, "User")
 
-    def _build_message(self, df, formats):
+    def _build_message(self, df: pd.DataFrame, formats: Mapping[str, Any]) -> str:
+        """Produce a formatted welcome message (CSV override if valid)."""
         """Format welcome_message or fallback to settings.msg_default"""
         default = settings.get("msg_default", "Welcome Back, {name} ({access})! Email = {email}").format(**formats)
         if "welcome_message" not in df.columns or self.email not in df.index:
@@ -193,9 +294,18 @@ class whoami:
         except Exception:
             return default
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.message
-def sidebar(msg: str = None, user_obj: whoami = None):
+def sidebar(msg: Optional[str] = None, user_obj: Optional[whoami] = None) -> None:
+    """Render sidebar with user info and navigation.
+
+    Parameters
+    ----------
+    msg : str | None
+        Optional extra message to display at bottom.
+    user_obj : whoami | None
+        Precomputed user object (saves re-loading CSV).
+    """
     """
     Render the sidebar with user information and navigation options.
 
@@ -205,10 +315,8 @@ def sidebar(msg: str = None, user_obj: whoami = None):
     """
     # Instantiate user if not provided
     if user_obj is None:
-        try:
-            user_obj = whoami(devkey=st.query_params.get('devkey'))
-        except Exception:
-            user_obj = whoami()
+        # Removed unsupported devkey parameter during whoami() construction
+        user_obj = whoami()
     st.sidebar.title("User Information")
     # Display the welcome message or user info
     st.sidebar.write(str(user_obj))
@@ -245,7 +353,8 @@ def sidebar(msg: str = None, user_obj: whoami = None):
     #In case addition messages need to be displayed
     if msg:
         st.sidebar.write(f"**Message:** {msg}")
-def prevent_st_user_not_logged_in():
+def prevent_st_user_not_logged_in() -> None:
+    """Enforce that a user session exists; offer login button if not."""
     """
     Prevents the app from running if the user is not logged in.
     """
@@ -253,8 +362,9 @@ def prevent_st_user_not_logged_in():
     except AttributeError:
         if st.button("Login", type="primary"):st.login()
         st.stop()
-        SYSLOG("A user is not logged in. And trying to access the app.")
-def accessible_pages():
+    SYSLOG("A user is not logged in. And trying to access the app.")
+def accessible_pages() -> Dict[str, str]:
+    """Return mapping of page filename -> title user can access."""
     """
     Returns a dictionary of accessible pages based on user access level.
     """
@@ -268,14 +378,15 @@ def accessible_pages():
     else:
         user_access = 0
 
-    page_access = {
+    page_access_levels: Dict[str, int] = {
         "1_Entry.py": 1,
         "2_About_Me.py": 1,
         "3_Grader.py": 2,
     }
-    accessible = {page: title for page, title in page_access.items() if user_access >= page_access[page]}
-    return accessible
-def padding():
+    # Return mapping of page -> page (placeholder for future title mapping)
+    return {page: page for page, min_level in page_access_levels.items() if user_access >= min_level}
+def padding() -> None:
+    """Inject global CSS padding adjustments into the current page."""
     """
     Adds padding to the main content area of the Streamlit app.
     """
@@ -289,7 +400,8 @@ def padding():
                     }
             </style>
             """, unsafe_allow_html=True)
-def mainload():
+def mainload() -> None:
+    """Perform one-time page setup (config, auth guard, layout padding)."""
     """
     Main function to load the application.
     Doesn't accept any parameters.
@@ -302,3 +414,77 @@ def mainload():
     prevent_st_user_not_logged_in()
     padding() #padding() function to add padding to the main content area (For making Zipher sane)
     # sidebar() removed to allow pages to control when/where sidebar renders
+
+IndexMap = Dict[Path, List[str]]
+
+
+class build_index:
+    """File-system index builder.
+
+    Build an in-memory mapping of each directory under the data root to its
+    immediate file children (non-recursive per directory entry). Designed for
+    quick lookups without re-scanning disk every call.
+    """
+
+    def __init__(self, input: Optional[str] = None) -> None:
+        base = input or os.getenv("DATA_DIR", "data")
+        self.input: Path = Path(base).resolve()
+        self.index: Optional[IndexMap] = None
+        self.initial_status: Optional[str] = os.getenv("INDEX_BUILT")
+
+    def initial(self) -> None:
+        """Populate `self.index` with current recursive directory snapshot.
+
+        Safe to call multiple times (overwrites prior snapshot). Sets the
+        `INDEX_BUILT` environment variable to signal availability.
+        """
+        self.input = Path(os.getenv("DATA_DIR", "data")).resolve()
+        # Build index only when called
+        if not self.input.exists():
+            ALERT(f"Path {self.input} does not exist.")
+            return
+        elif not self.input.is_dir():
+            ALERT(f"Path {self.input} is not a directory.")
+            return
+        built: IndexMap = {}
+        for subfolder in self.input.rglob("*"):
+            if subfolder.is_dir():
+                built[subfolder] = [str(f) for f in subfolder.iterdir() if f.is_file()]
+        self.index = built
+        SYSLOG(f"Index built for all subfolders in: {self.input}")
+        os.environ["INDEX_BUILT"] = "True"
+    #Make a predifined path for convenience in using build_index.preset()
+    def refresh_scanned_csv(self) -> List[str]:
+        """Return CSV file paths inside OCR output directory.
+
+        Uses existing index if present; otherwise performs a direct scan.
+        """
+        ocr_dir = Path(os.getenv("OCR_OUTPUT_DIR", "./data/scanned_csv")).resolve()
+        if self.index is None:
+            if not ocr_dir.exists():
+                return []
+            return [str(p) for p in ocr_dir.rglob("*.csv") if p.is_file()]
+        return [str(p) for p in self.index.keys() if p.suffix == ".csv"]
+class organize:
+    '''
+    Organize files into subdirectories based on it's file name
+    File format : <Subject ID>_<Student ID>_<read_count>
+    <Subject ID>
+    |-<Student ID>
+    | |-<read_count>
+    ...
+    '''
+    def __init__(self, input: Optional[str] = None) -> None:
+        """Create an organizer instance.
+
+        Parameters
+        ----------
+        input : str | None
+            Root directory to organize (defaults to DATA_DIR env or 'data').
+        """
+        base = input or os.getenv("DATA_DIR", "data")
+        self.input: Path = Path(base).resolve()
+        self.index_builder = build_index(str(self.input))
+        if os.getenv("INDEX_BUILT") != "True":
+            self.index_builder.initial()
+            SYSLOG.WARN("Organize was called before Index was built!")
