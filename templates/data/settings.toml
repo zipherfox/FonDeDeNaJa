@@ -1,4 +1,4 @@
-enable_devkey = true
+enable_devkey = false
 dev_key = "L4D2"
 msg_default = "Welcome Back, {name} ({access})! {email}"
 view_answer = false
