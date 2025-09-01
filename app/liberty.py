@@ -69,8 +69,8 @@ def DEBUG(msg: str, DEV_MODE: bool = False, METHOD: str = None):
 # Load main config using Config class
 load_dotenv()
 def check_secrets_file():
-    secrets_path = os.path.join(os.getenv("STREAMLIT_DIR", ".streamlit"), "secrets.toml")
-    if not os.path.isfile(secrets_path):
+    secrets_path = Path(os.getenv("STREAMLIT_DIR", ".streamlit")) / "secrets.toml"
+    if not secrets_path.is_file():
         return WARN("secrets.toml file not found. Please create one in the .streamlit directory.")
     try:
         secrets_data = toml.load(secrets_path)
@@ -147,7 +147,8 @@ class whoami:
     def _load_user_df(self):
         """Load user.csv into DataFrame or alert/stop on missing file"""
         try:
-            return pd.read_csv(os.path.join(os.getenv("DATA_DIR", "data"), "user.csv"), index_col="email")
+            user_csv_path = Path(os.getenv("DATA_DIR", "data")) / "user.csv"
+            return pd.read_csv(user_csv_path, index_col="email")
         except FileNotFoundError:
             ALERT("User data file not found. Please ensure path to 'data/user.csv' exists.")
             st.stop()
@@ -302,3 +303,25 @@ def mainload():
     prevent_st_user_not_logged_in()
     padding() #padding() function to add padding to the main content area (For making Zipher sane)
     # sidebar() removed to allow pages to control when/where sidebar renders
+
+class build_index:
+    def __init__(self, input):
+        # Prevent hardcoded paths and convert to absolute path using pathlib
+        input = Path(input).resolve()
+        # This function is used for building index within the desired folder
+        # Check if path is valid
+        if not input.exists():
+            ALERT(f"Path {input} does not exist.")
+            return FileNotFoundError
+        elif not input.is_dir():
+            ALERT(f"Path {input} is not a directory.")
+            return NotADirectoryError
+        else:
+            # If path is valid, proceed to build index
+            self.dir = input
+            dict = input.walk()
+            SYSLOG(f"Index built for directory: {self.dir}")
+            return dict
+    #Make a predifined path for convenience in using build_index.something()
+    def scanned_csv(self):
+        super ().__init__(self)
