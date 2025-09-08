@@ -426,33 +426,31 @@ class build_index:
     quick lookups without re-scanning disk every call.
     """
 
-    def __init__(self, input: Optional[str] = None) -> None:
-        base = input or os.getenv("DATA_DIR", "data")
-        self.input: Path = Path(base).resolve()
-        self.index: Optional[IndexMap] = None
-        self.initial_status: Optional[str] = os.getenv("INDEX_BUILT")
+    def __init__(self, input: str = None) -> None:
+        self.base = input or
+        self.path: Path = Path(base).resolve()
+        self.index: IndexMap = {
+            "Folders": [],
+            "Files": [],
+            "Current": str
+        }
+        if not self.path.exists():SYSLOG.ERROR(f"Path {self.path} does not exist.")
+        elif not self.path.is_dir():SYSLOG.ERROR(f"Path {self.path} is not a directory.")
+        if self.index["Folders"] or self.index["Files"] == []:
+            SYSLOG.INFO(f"Index already built for: {self.path} in {traceback.extract_stack()[-2]}. Updating index...")
+        else:
+            SYSLOG.INFO(f"Building index for: {self.path} in {traceback.extract_stack()[-2]}")
+        for root, dirs, files in self.path.iterdir():
+            for d in dirs: self.index["Folders"].append(str(d))
+            for f in files: self.index["Files"].append(str(f))
+        if self.index["Current"] is None:self.index["Current"] = str(self.path) # Avoid unnecessary updates
+        SYSLOG.INFO(f"Index built/updated for: {self.path} in {traceback.extract_stack()[-2]}")
+        with open(self.path / "index.json", "w") as f:
+            json.dump(self.index, f)
 
-    def initial(self) -> None:
-        """Populate `self.index` with current recursive directory snapshot.
-
-        Safe to call multiple times (overwrites prior snapshot). Sets the
-        `INDEX_BUILT` environment variable to signal availability.
-        """
-        self.input = Path(os.getenv("DATA_DIR", "data")).resolve()
-        # Build index only when called
-        if not self.input.exists():
-            ALERT(f"Path {self.input} does not exist.")
-            return
-        elif not self.input.is_dir():
-            ALERT(f"Path {self.input} is not a directory.")
-            return
-        built: IndexMap = {}
-        for subfolder in self.input.rglob("*"):
-            if subfolder.is_dir():
-                built[subfolder] = [str(f) for f in subfolder.iterdir() if f.is_file()]
-        self.index = built
-        SYSLOG(f"Index built for all subfolders in: {self.input}")
-        os.environ["INDEX_BUILT"] = "True"
+    def data_dir(self) -> None:
+        self.__init__(input = os.getenv("DATA_DIR", "data"))
+        os.environ["INDEX_BUILT_FOR_DATA_DIR"] = "TRUE"
     #Make a predifined path for convenience in using build_index.preset()
     def refresh_scanned_csv(self) -> List[str]:
         """Return CSV file paths inside OCR output directory.
@@ -462,9 +460,11 @@ class build_index:
         ocr_dir = Path(os.getenv("OCR_OUTPUT_DIR", "./data/scanned_csv")).resolve()
         if self.index is None:
             if not ocr_dir.exists():
+                SYSLOG.ERROR(f"OCR output directory {ocr_dir} does not exist.")
                 return []
             return [str(p) for p in ocr_dir.rglob("*.csv") if p.is_file()]
-        return [str(p) for p in self.index.keys() if p.suffix == ".csv"]
+        else:
+            return [str(p) for p in self.index.keys() if p.suffix == ".csv"]
 class organize:
     '''
     Organize files into subdirectories based on it's file name
